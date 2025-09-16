@@ -4,13 +4,6 @@ Running App Project By Zohaib Syed, Nick Manna, Jack Collins, and Sam Fulton
 
 From First Commit, AI Overview of the App Structure using React Native:
 
-
-Ctrl+K to generate a command
-explain all the key components of this default react app to me as i dont have much knowledge of react native.
-
-I'll help you understand the key components of this React Native app! Let me first examine the structure and key files to give you a comprehensive overview.
-Now let me examine some key components and the theme system:
-Perfect! Now I have a comprehensive understanding of this React Native app. Let me explain all the key components to you:
 React Native App Structure Overview
 This is a React Native app built with Expo, which is a popular framework that makes React Native development easier. Here are the key components:
 1. Project Configuration
