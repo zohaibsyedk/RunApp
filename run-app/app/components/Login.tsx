@@ -7,9 +7,9 @@ const stravaClientId = "177332";
 const authorizationEndpoint = "https://www.strava.com/oauth/authorize";
 
 const redirectUri = AuthSession.makeRedirectUri({
-  scheme: "runapp",
-  path: "strava-auth",
-});
+    scheme: "runapp",
+    path: "strava-auth",
+  });
 
 console.log("Redirect URI:", redirectUri);
 
