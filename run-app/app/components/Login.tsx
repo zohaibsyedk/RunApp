@@ -29,7 +29,29 @@ const Login: React.FC = () => {
   React.useEffect(() => {
     if (response?.type === "success" && response.params.code) {
       const { code } = response.params;
-      console.log("got auth code:", code);
+      const backendUrl = "https://run-app-backend-179019793982.us-central1.run.app/strava/exchange";
+    
+      (async () => {
+        try {
+          const res = await fetch(backendUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              code,
+              redirectUri, // the one you already compute above
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            console.error("Exchange failed:", data);
+            return;
+          }
+          console.log("Tokens:", data);
+          // TODO: persist tokens securely (e.g., SecureStore) and proceed
+        } catch (e) {
+          console.error("Network error:", e);
+        }
+      })();
     }
   }, [response]);
 
