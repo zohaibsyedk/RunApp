@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "runapp",
     "name": "run-app",
     "slug": "run-app",
     "version": "1.0.0",
