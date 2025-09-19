@@ -50,20 +50,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (tokens: { accessToken: string; refreshToken: string; athleteData: any }) => {
+  const login = async (tokens: { accessToken: string; refreshToken: string; athleteData: string }) => {
     try {
       // Ensure tokens are strings and not empty
-      if (!tokens.accessToken || !tokens.refreshToken) {
+      if (!tokens.accessToken || !tokens.refreshToken || !tokens.athleteData) {
         throw new Error('Invalid tokens provided');
       }
       
-      if (typeof tokens.accessToken !== 'string' || typeof tokens.refreshToken !== 'string') {
+      if (typeof tokens.accessToken !== 'string' || typeof tokens.refreshToken !== 'string' || typeof tokens.athleteData !== 'string') {
         throw new Error('Tokens must be strings');
       }
       
       await SecureStore.setItemAsync('accessToken', tokens.accessToken);
       await SecureStore.setItemAsync('refreshToken', tokens.refreshToken);
-      await SecureStore.setItemAsync('athleteData', JSON.stringify(tokens.athleteData));
+      await SecureStore.setItemAsync('athleteData', tokens.athleteData);
       setIsAuthenticated(true);
       setShowLoginModal(false);
     } catch (error) {

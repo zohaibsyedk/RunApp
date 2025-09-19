@@ -62,7 +62,7 @@ const Login: React.FC = () => {
           await login({
             accessToken: String(data.accessToken),
             refreshToken: String(data.refreshToken),
-            athleteData: data.athlete,
+            athleteData: JSON.stringify(data.athlete),
           });
           
         } catch (e) {
