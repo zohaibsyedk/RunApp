@@ -1,10 +1,36 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CreateEvent from "../components/CreateEvent";
+import * as Clipboard from 'expo-clipboard';
 
 const EventsScreen = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<any[]>([]);
+  const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      const resp = await fetch(`${API_URL}/api/events`);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error || 'Failed to load events');
+      setEvents(data.events || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const copyLink = async (url: string) => {
+    await Clipboard.setStringAsync(url);
+  };
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -21,12 +47,27 @@ const EventsScreen = () => {
       </View>
       
       <View style={styles.content}>
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>No activities yet</Text>
-          <Text style={styles.emptyDescription}>
-            Start running and your activities will appear here!
-          </Text>
-        </View>
+        {loading ? (
+          <ActivityIndicator />
+        ) : events.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>No events yet</Text>
+            <Text style={styles.emptyDescription}>Create your first event.</Text>
+          </View>
+        ) : (
+          events.map((e) => (
+            <View key={e.id} style={styles.card}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{e.eventName}</Text>
+                <Text style={styles.cardMeta}>{new Date(e.scheduledDateTime).toLocaleString()}</Text>
+                {e.plannedRoute ? <Text style={styles.cardMeta}>{e.plannedRoute}</Text> : null}
+              </View>
+              <TouchableOpacity onPress={() => copyLink(e.shareableLinkId)} style={styles.copySmall}>
+                <Ionicons name="copy" size={18} color="#007AFF" />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
       </View>
       <CreateEvent visible={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </ScrollView>
@@ -91,6 +132,33 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
     lineHeight: 22,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#222',
+  },
+  cardMeta: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  copySmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EAF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

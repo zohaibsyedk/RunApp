@@ -76,11 +76,47 @@ app.post('/strava/exchange', async (req, res) => {
 //unfinished
 app.post('/api/events', async (req, res) => {
   try {
-    const submissionData = req.body;
-    console.log('Received /api/events payload:', submissionData);
-    return res.status(200).json({ status: 'ok' });
+    const { creatorId, eventName, scheduledDateTime, plannedRoute } = req.body || {};
+    if (!eventName || !scheduledDateTime) {
+      return res.status(400).json({ error: 'Missing required fields', required: ['eventName', 'scheduledDateTime'] });
+    }
+
+    const nowIso = new Date().toISOString();
+    const numericId = Date.now().toString();
+    const eventId = numericId;
+    const shareId = `s_${numericId}`;
+    const docId = `event_${eventId}`;
+
+    const shareBase = process.env.SHARE_BASE_URL || 'https://runapp-472401.web.app';
+    const shareableLinkId = `${shareBase}/share/${shareId}`;
+
+    const payload = {
+      eventId,
+      creatorId: creatorId || 'anonymous',
+      eventName,
+      scheduledDateTime,
+      createdAt: nowIso,
+      plannedRoute: plannedRoute || '',
+      shareableLinkId,
+      shareId,
+    };
+
+    await firestore.doc(`events/${docId}`).set(payload);
+    console.log("added event doc");
+    return res.status(201).json({ status: 'ok', eventDocPath: `events/${docId}`, ...payload });
   } catch (err) {
     console.error('Error processing /api/events', err);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/events', async (req, res) => {
+  try {
+    const snapshot = await firestore.collection('events').orderBy('createdAt', 'desc').limit(100).get();
+    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return res.json({ events: items });
+  } catch (err) {
+    console.error('Error listing events', err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
