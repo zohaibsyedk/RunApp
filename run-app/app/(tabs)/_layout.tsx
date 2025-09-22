@@ -5,7 +5,7 @@ const TabLayout: React.FC = () => {
     return (
         <Tabs>
             <Tabs.Screen name="index" options={{ title: 'Home' }} />
-            <Tabs.Screen name="activities" options={{ title: 'Activities' }} />
+            <Tabs.Screen name="events" options={{ title: 'Events' }} />
             <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
         </Tabs>
       );
