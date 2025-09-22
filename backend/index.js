@@ -15,25 +15,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// The PORT environment variable is provided by Cloud Run.
 const port = process.env.PORT || 8080;
 
-// Initialize Firebase Admin and Cloud Storage
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 const firestore = admin.firestore();
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET || `${process.env.GOOGLE_CLOUD_PROJECT}.appspot.com`;
-console.log("Bucket",bucketName);
 const bucket = storage.bucket(bucketName);
 
 app.get('/', (req, res) => {
   res.send('Hello from your Node.js backend on GCP! 👋');
 });
 
-// Exchange Strava auth code for tokens
-// Expects: { code: string, redirectUri: string }
 app.post('/strava/exchange', async (req, res) => {
   try {
     const { code, redirectUri } = req.body || {};
@@ -65,7 +60,6 @@ app.post('/strava/exchange', async (req, res) => {
       return res.status(tokenResp.status).json({ error: 'Strava token exchange failed', details: data });
     }
 
-    // Optionally store tokens here
     return res.json({
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
@@ -78,6 +72,8 @@ app.post('/strava/exchange', async (req, res) => {
   }
 });
 
+
+//unfinished
 app.post('/api/events', async (req, res) => {
   try {
     const submissionData = req.body;
