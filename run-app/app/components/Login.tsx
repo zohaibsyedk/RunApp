@@ -1,11 +1,12 @@
 import React from "react";
-import { View, Button, Modal, Text, Alert } from "react-native";
-import * as AuthSession from "expo-auth-session";
+import { View, Button, Modal, Text, Alert } from 'react-native';
+import * as AuthSession from 'expo-auth-session';
 import { useAuth } from "../contexts/AuthContext";
+import { useAuthRequest } from "expo-auth-session";
 
 // Constants for Strava OAuth
-const stravaClientId = "177332";
-const authorizationEndpoint = "https://www.strava.com/oauth/authorize";
+const stravaClientId = '177332';
+const authorizationEndpoint = 'https://www.strava.com/oauth/authorize';
 
 const redirectUri = AuthSession.makeRedirectUri({
     scheme: "runapp",
@@ -14,7 +15,7 @@ const redirectUri = AuthSession.makeRedirectUri({
 
 console.log("Redirect URI:", redirectUri);
 
-import { useAuthRequest } from "expo-auth-session";
+
 
 const Login: React.FC = () => {
   const { login, setShowLoginModal } = useAuth();
