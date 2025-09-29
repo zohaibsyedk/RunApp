@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import { Redirect } from "expo-router";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -21,7 +22,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
-
+  console.log("Authenticated? ", isAuthenticated);
   // Check for existing authentication on app start
   useEffect(() => {
     checkAuthStatus();
@@ -79,7 +80,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await SecureStore.deleteItemAsync('refreshToken');
       await SecureStore.deleteItemAsync('athleteData');
       setIsAuthenticated(false);
-      setShowLoginModal(true);
     } catch (error) {
       console.error('Error removing tokens:', error);
     }
