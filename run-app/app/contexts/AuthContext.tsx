@@ -1,110 +1,48 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { Redirect } from "expo-router";
+import { auth } from '../../firebaseConfig';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
+import { ActivityIndicator } from 'react-native';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (tokens: { accessToken: string; refreshToken: string; athleteData: any }) => Promise<void>;
+  user: User | null;
   logout: () => Promise<void>;
-  showLoginModal: boolean;
-  setShowLoginModal: (show: boolean) => void;
-  getAthleteData: () => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  console.log("Authenticated? ", isAuthenticated);
-  // Check for existing authentication on app start
+
   useEffect(() => {
-    checkAuthStatus();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsLoading(false);
+    })
+
+    return () => unsubscribe();
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      const accessToken = await SecureStore.getItemAsync('accessToken');
-      const refreshToken = await SecureStore.getItemAsync('refreshToken');
-      const athleteData = await SecureStore.getItemAsync('athleteData');
-      
-      if (accessToken && refreshToken) {
-        // TODO: Validate token with backend
-        setIsAuthenticated(true);
-        setShowLoginModal(false);
-      } else {
-        setIsAuthenticated(false);
-        setShowLoginModal(true);
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      setIsAuthenticated(false);
-      setShowLoginModal(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const login = async (tokens: { accessToken: string; refreshToken: string; athleteData: string }) => {
-    try {
-      // Ensure tokens are strings and not empty
-      if (!tokens.accessToken || !tokens.refreshToken || !tokens.athleteData) {
-        throw new Error('Invalid tokens provided');
-      }
-      
-      if (typeof tokens.accessToken !== 'string' || typeof tokens.refreshToken !== 'string' || typeof tokens.athleteData !== 'string') {
-        throw new Error('Tokens must be strings');
-      }
-      
-      await SecureStore.setItemAsync('accessToken', tokens.accessToken);
-      await SecureStore.setItemAsync('refreshToken', tokens.refreshToken);
-      await SecureStore.setItemAsync('athleteData', tokens.athleteData);
-      setIsAuthenticated(true);
-      setShowLoginModal(false);
-    } catch (error) {
-      console.error('Error saving tokens:', error);
-      throw error;
-    }
-  };
-
   const logout = async () => {
-    console.log("logout");
     try {
-      await SecureStore.deleteItemAsync('accessToken');
-      await SecureStore.deleteItemAsync('refreshToken');
-      await SecureStore.deleteItemAsync('athleteData');
-      setIsAuthenticated(false);
+      await signOut(auth);
     } catch (error) {
-      console.error('Error removing tokens:', error);
-    }
-    console.log(isAuthenticated);
-  };
-
-  const getAthleteData = async () => {
-    try {
-      const data = await SecureStore.getItemAsync('athleteData');
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error('Error getting athlete data:', error);
-      return null;
+      console.error('Error logging out:', error);
     }
   };
 
   const value: AuthContextType = {
-    isAuthenticated,
+    isAuthenticated: !!user,
+    user,
     isLoading,
-    login,
     logout,
-    showLoginModal,
-    setShowLoginModal,
-    getAthleteData,
   };
+
+  if (isLoading) {
+    return (<ActivityIndicator />);
+  }
 
   return (
     <AuthContext.Provider value={value}>
@@ -115,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

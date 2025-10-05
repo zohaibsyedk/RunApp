@@ -4,31 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { router } from "expo-router";
 
 const ProfileScreen = () => {
-  const { logout, getAthleteData } = useAuth();
-  const [athleteName, setAthleteName] = useState<string>("User");
-  const [athletePfp, setAthletePfp] = useState<string>("https://reactjs.org/logo-og.png");
-  const [athleteData, setAthleteData] = useState<any>(null);
-
-  useEffect(() => {
-    loadAthleteData();
-  }, []);
-
-  const loadAthleteData = async () => {
-    try {
-      const data = await getAthleteData();
-      if (data) {
-        setAthleteData(data);
-        if (data.firstname) {
-          setAthleteName(data.firstname);
-        }
-        if (data.profile) {
-          setAthletePfp(data.profile);
-        }
-      }
-    } catch (error) {
-      console.error('Error getting athlete data:', error);
-    }
-  };
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -62,9 +38,9 @@ const ProfileScreen = () => {
       <View style={styles.content}>
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Image source={{uri: athletePfp}} style={{width: 80, height: 80, borderRadius: 40}} />
+            <Image source={{uri: ""}} style={{width: 80, height: 80, borderRadius: 40}} />
           </View>
-          <Text style={styles.userName}>{athleteName}</Text>
+          <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
           <Text style={styles.userEmail}>Connected via Strava</Text>
         </View>
         
