@@ -17,17 +17,8 @@ const CreateEvent: React.FC<Props> = ({ visible, onClose }) => {
   const [plannedRoute, setPlannedRoute] = useState("");
   const [creating, setCreating] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const { getAthleteData } = useAuth();
   const [creatorId, setCreatorId] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const athlete = await getAthleteData();
-        if (athlete?.id) setCreatorId(String(athlete.id));
-      } catch {}
-    })();
-  }, [getAthleteData]);
 
   const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
 

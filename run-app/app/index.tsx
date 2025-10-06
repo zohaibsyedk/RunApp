@@ -38,7 +38,7 @@ type Props = {
 const Index: React.FC<Props> = ({ title, onPress }) => {
 
   const { logout, isAuthenticated } = useAuth();
-
+  const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
   //sign in form state
   const [showSignIn, setShowSignIn] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
@@ -46,6 +46,7 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -70,17 +71,35 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
       Alert.alert('Error', 'Please enter first name, last name, password, and email.');
       return;
     }
-
     try {
+      setIsLoading(true);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, {
-        displayName: firstName+" "+lastName,
+      const user = userCredential.user;
+      const displayName = firstName+" "+lastName;
+      await updateProfile(user, {
+        displayName: displayName,
       })
-      console.log('User account created & signed in!', userCredential.user.displayName);
+
+      const token = await user.getIdToken();
+
+      await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          displayName: displayName,
+          photoURL: user.photoURL,
+        }),
+      });
+      console.log('User account created & signed in!', user.displayName);
     }
     catch (error: any) {
       console.error("Sign up Error:", error);
       Alert.alert("Sign up failed:", error.message);
+    } finally {
+      setIsLoading(false);
     }
     console.log("Simulate SignUp API call with email: "+email+", and password: "+password);
   }
@@ -172,7 +191,7 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
               value={password}
               onChangeText={setPassword}
             />
-            <TouchableOpacity style={styles.submitButton} onPress={handleSignUp}>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSignUp} disabled={isLoading}>
               <Text style={styles.submitText}>Sign Up</Text>
             </TouchableOpacity>
           </View>

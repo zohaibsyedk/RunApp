@@ -4,6 +4,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
 
 import { 
   updateProfile
@@ -72,6 +74,10 @@ const ProfileScreen = () => {
             photoURL: uploadURL,
           });
 
+          const userDocRef = doc(db, "users", user.uid);
+          await updateDoc(userDocRef, {
+            photoURL: uploadURL,
+          });
           setPhoto(uploadURL);
         }
       } catch (error) {

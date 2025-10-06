@@ -3,6 +3,7 @@ const multer = require('multer');
 const app = express();
 const admin = require('firebase-admin');
 const { Storage } = require('@google-cloud/storage');
+const { decode } = require('jsonwebtoken');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -304,7 +305,51 @@ app.post('/strava/activites', async (req, res) => {
   }
 });
 
+const verifyFirebaseToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(403).send('Unauthorized: No token provided');
+  }
+
+  const idToken = authHeader.split('Bearer ')[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error('Error while verifying Firebase ID token:', error);
+    res.status(403).send('Unauthorized: Invalid token');
+  }
+};
+
+app.post('/api/users', verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const email = req.user.email;
+    const { displayName, photoURL } = req.body;
+
+    const userData = {
+      uid,
+      email,
+      displayName: displayName || '',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      photoURL: photoURL,
+    };
+
+    await firestore.collection('users').doc(uid).set(userData);
+    console.log(`User doc created for UID: ${uid}`);
+    
+    return res.status(201).json({
+      success: true,
+      message: "User document created successfully.",
+      user: userData,
+    })
+  } catch (e) {
+    console.error("Error creating user doc",e);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
 //unfinished
 app.post('/api/events', async (req, res) => {
   try {
