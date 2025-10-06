@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { router } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFirestore, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
 
 import { 
@@ -15,6 +15,29 @@ const ProfileScreen = () => {
   const { user, logout } = useAuth();
   const [photo, setPhoto] = useState(user?.photoURL);
   const [loading, setLoading] = useState(false);
+  const [accountType, setAccountType] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user) {
+        const userDocRef = doc(db, "users", `${user.uid}`);
+        
+        try {
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setAccountType(data.accountType || 'No account type set');
+          } else {
+            console.log("User document not found in Firestore");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+
+    fetchUserData()
+  }, [user])
 
   const handleLogout = () => {
     Alert.alert(
@@ -88,7 +111,7 @@ const ProfileScreen = () => {
       }
     }
   };
-
+  console.log("Account Type:", accountType);
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -106,7 +129,7 @@ const ProfileScreen = () => {
             )}
           </TouchableOpacity>
           <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
-          <Text style={styles.userEmail}>Connected via Strava</Text>
+          <Text style={styles.userEmail}>{accountType}</Text>
         </View>
         
         <View style={styles.settings}>

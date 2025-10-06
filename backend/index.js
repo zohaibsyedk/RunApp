@@ -335,6 +335,7 @@ app.post('/api/users', verifyFirebaseToken, async (req, res) => {
       displayName: displayName || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       photoURL: photoURL,
+      accountType: 'Runner',
     };
 
     await firestore.collection('users').doc(uid).set(userData);

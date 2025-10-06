@@ -62,8 +62,6 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
       console.error("Login Error:", error);
       Alert.alert('Login Failed', error.message);
     }
-
-    console.log("Simulate Login API call with username: "+email+", and password: "+password);
   }
 
   const handleSignUp = async () => {
@@ -101,7 +99,6 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
     } finally {
       setIsLoading(false);
     }
-    console.log("Simulate SignUp API call with email: "+email+", and password: "+password);
   }
 
   const [fontsLoaded] = useFonts({
