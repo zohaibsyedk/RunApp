@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { router } from "expo-router";
+import * as ImagePicker from 'expo-image-picker';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+
+import { 
+  updateProfile
+} from "firebase/auth";
 
 const ProfileScreen = () => {
   const { user, logout } = useAuth();
+  const [photo, setPhoto] = useState(user?.photoURL);
+  const [loading, setLoading] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -28,6 +36,53 @@ const ProfileScreen = () => {
     );
   };
 
+  const uploadImageAsync = async (uri: string) => {
+    if (!user) {
+      return null;
+    }
+
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const storage = getStorage();
+    const storageRef = ref(storage, `profile-pictures/${user.uid}`);
+
+    await uploadBytes(storageRef, blob);
+    
+    const downloadURL = await getDownloadURL(storageRef);
+    return downloadURL;
+  };
+
+  const handleProfileClick = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1,1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0 && user) {
+      setLoading(true);
+      try {
+        const imageUri = result.assets[0].uri;
+        const uploadURL = await uploadImageAsync(imageUri);
+
+        if (uploadURL) {
+          await updateProfile(user, {
+            photoURL: uploadURL,
+          });
+
+          setPhoto(uploadURL);
+        }
+      } catch (error) {
+        console.error("Error updating profile picture:", error);
+        Alert.alert("Error", "Failed to update profile picture");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -37,9 +92,13 @@ const ProfileScreen = () => {
       
       <View style={styles.content}>
         <View style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Image source={{uri: ""}} style={{width: 80, height: 80, borderRadius: 40}} />
-          </View>
+          <TouchableOpacity onPress={handleProfileClick} style={styles.avatar}>
+            {loading ? (
+              <ActivityIndicator size="large" color="#000" />
+            ) : (
+              <Image source={{uri: photo || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png'}} style={{width: 80, height: 80, borderRadius: 40}} />
+            )}
+          </TouchableOpacity>
           <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
           <Text style={styles.userEmail}>Connected via Strava</Text>
         </View>
