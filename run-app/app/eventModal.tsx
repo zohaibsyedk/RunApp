@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, TouchableOpacity } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
 
 const EventModal = () => {
     return (
@@ -8,10 +8,10 @@ const EventModal = () => {
             <View style={styles.container}>
                 <Pressable onPress={() => router.back()} style={StyleSheet.absoluteFill}/>
                 <View style={styles.modalView}>
-                    <TouchableOpacity style={styles.button}>
-                        <Text style={styles.title}>Create Race</Text>
+                    <TouchableOpacity style={styles.button} onPress={() => {router.replace('/createEvent')}}>
+                        <Text style={styles.title}>Create Event</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.button}>
+                    <TouchableOpacity style={styles.button} onPress={() => {router.replace('/createOrganization')}}>
                         <Text style={styles.title}>Create Organization</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.button}>
