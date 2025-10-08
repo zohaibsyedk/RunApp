@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
 
-const HomeScreen = () => {
+const Feed = () => {
   const { logout } = useAuth();
 
   return (
@@ -53,4 +53,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default Feed;

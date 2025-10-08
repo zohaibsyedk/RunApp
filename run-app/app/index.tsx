@@ -113,7 +113,7 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
 
   if (!fontsLoaded) return <View style={styles.container}><ActivityIndicator size="large" color="#fff" /></View>;;
   if (isAuthenticated) {
-    return <Redirect href="/(tabs)/homescreen" />;
+    return <Redirect href="/(tabs)/feed" />;
   }
   
   return (
