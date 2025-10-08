@@ -1,5 +1,5 @@
-import React, {useState} from 'react';
-import { Text, View, TouchableOpacity, TextInput, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Text, View, TouchableOpacity, TextInput, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent} from '@react-native-community/datetimepicker';
@@ -10,6 +10,7 @@ const CreateEvent = () => {
     const [startDate, setStartDate] = useState(new Date());
     const [organization, setOrganization] = useState('');
     const [showTimePicker, setShowTimePicker] = useState(false);
+    const [readyToSubmit, setReadyToSubmit] = useState(false);
     const onChangeDate = (event?: DateTimePickerEvent, selectedDate?: Date) => {
         if (selectedDate) {
             setStartDate(selectedDate);
@@ -22,6 +23,17 @@ const CreateEvent = () => {
         day: '2-digit',
         month: 'short'
     })
+
+    useEffect(() => {
+        if (eventName && startDate && organization) {
+            setReadyToSubmit(true);
+        }
+    }, [eventName, startDate, organization]);
+
+    const handleSubmit = async () => {
+        console.log('Submitting');
+    }
+
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => {router.back()}} >
@@ -104,6 +116,16 @@ const CreateEvent = () => {
                     )}
                 </Pressable>
             </View>
+            {readyToSubmit && (
+                <TouchableOpacity style={styles.createButton} onPress={() => {handleSubmit()}} >
+                    <Text style={styles.createTextReady}>Create</Text>
+                </TouchableOpacity>
+            )}
+            {!readyToSubmit && (
+                <TouchableOpacity style={styles.createButton} onPress={() => {Alert.alert("Fill out all required Fields")}} >
+                    <Text style={styles.createText}>Create</Text>
+                </TouchableOpacity>
+            )}
         </View>
     );
 };
@@ -116,14 +138,14 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: '5%',
+        top: '8%',
         left: '5%',
     },
     title: {
         position: 'absolute',
         fontFamily: 'Lexend-Bold',
         fontSize: 24,
-        top: '10%',
+        top: '13%',
     },
     input: {
         fontSize: 16,
@@ -181,6 +203,21 @@ const styles = StyleSheet.create({
         color: 'rgba(227, 227, 227)',
         marginTop: 5,
         textAlign: 'center',
+    },
+    createButton: {
+        position: 'absolute',
+        right: '5%',
+        top: '9%',
+    },
+    createText: {
+        fontFamily: 'Lexend-Regular',
+        fontSize: 16,
+        color: 'black'
+    },
+    createTextReady: {
+        fontFamily: 'Lexend-Regular',
+        fontSize: 16,
+        color: 'blue'
     }
 });
 
