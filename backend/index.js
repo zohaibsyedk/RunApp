@@ -336,6 +336,7 @@ app.post('/api/users', verifyFirebaseToken, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       photoURL: photoURL,
       accountType: 'Runner',
+      organizations: [displayName],
     };
 
     await firestore.collection('users').doc(uid).set(userData);
@@ -351,51 +352,84 @@ app.post('/api/users', verifyFirebaseToken, async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-//unfinished
-app.post('/api/events', async (req, res) => {
+
+app.post('/api/events', verifyFirebaseToken, async (req, res) => {
   try {
-    const { creatorId, eventName, scheduledDateTime, plannedRoute } = req.body || {};
-    if (!eventName || !scheduledDateTime) {
-      return res.status(400).json({ error: 'Missing required fields', required: ['eventName', 'scheduledDateTime'] });
+    const userId = req.user.uid;
+    const { name, organizationId, startDate, visibility, distance, location, description } = req.body;
+
+    if (!name || !organizationId || !startDate || !visibility) {
+      return res.status(400).json({ error: 'Missing required fields.' });
     }
 
-    const nowIso = new Date().toISOString();
-    const numericId = Date.now().toString();
-    const eventId = numericId;
-    const shareId = `s_${numericId}`;
-    const docId = `event_${eventId}`;
-
-    const shareBase = process.env.SHARE_BASE_URL || 'https://runapp-472401.web.app';
-    const shareableLinkId = `${shareBase}/share/${shareId}`;
-
-    const payload = {
-      eventId,
-      creatorId: creatorId || 'anonymous',
-      eventName,
-      scheduledDateTime,
-      createdAt: nowIso,
-      plannedRoute: plannedRoute || '',
-      shareableLinkId,
-      shareId,
+    const eventData = {
+      name: name, //required
+      organizationId: organizationId, //required
+      createdBy: userId, //required
+      startDate: admin.firestore.Timestamp.fromDate(new Date(startDate)), //required
+      visibility: visibility, //required
+      distance: distance || 0, //optional
+      description: description || '', //optional
+      location: { //optional
+        "address": location.address || "",
+        "geopoint": new admin.firestore.GeoPoint(
+          location?.geopoint?.latitude || 0,
+          location?.geopoint?.longitude || 0
+        )
+      },
+      "createdAt": admin.firestore.FieldValue.serverTimestamp(), //required
+      "updatedAt": admin.firestore.FieldValue.serverTimestamp(), //required
     };
 
-    await firestore.doc(`events/${docId}`).set(payload);
-    console.log("added event doc");
-    return res.status(201).json({ status: 'ok', eventDocPath: `events/${docId}`, ...payload });
-  } catch (err) {
-    console.error('Error processing /api/events', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    const eventRef = await firestore.collection('events').add(eventData);
+
+    return res.status(201).json({
+      success: true,
+      message: "Event document created successfully.",
+      event: { id: eventRef.id, ...eventData},
+    })
+  } catch (error) {
+    console.error("Error creating event:", error);
+    return res.status(500).json({ error: "An unexpected error occured." });
   }
 });
 
-app.get('/api/events', async (req, res) => {
+app.get('/api/events', verifyFirebaseToken, async (req, res) => {
+  //fetches user events and public events (will add friends later) and sorts by startDate
   try {
-    const snapshot = await firestore.collection('events').orderBy('createdAt', 'desc').limit(100).get();
-    const items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-    return res.json({ events: items });
-  } catch (err) {
-    console.error('Error listing events', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    const userId = req.user.uid;
+
+    const publicEventsQuery = firestore.collection('events').where('visibility', '==', 'Public');
+    const publicEventsSnapshot = await publicEventsQuery.get();
+    const publicEvents = [];
+    publicEventsSnapshot.forEach(doc => {
+      publicEvents.push({ id: doc.id, ...doc.data()});
+    });
+
+    const userEventsQuery = firestore.collection('events').where('createdBy', '==', userId);
+    const userEventsSnapshot = await userEventsQuery.get();
+    const userEvents = [];
+    userEventsSnapshot.forEach(doc => {
+      userEvents.push({ id: doc.id, ...doc.data()});
+    });
+    console.log("Public Events:", publicEvents);
+    console.log("User Events:", userEvents);
+    const combinedEventsMap = new Map();
+    publicEvents.forEach(event => combinedEventsMap.set(event.id, event));
+    userEvents.forEach(event => combinedEventsMap.set(event.id, event));
+
+    const finalEvents = Array.from(combinedEventsMap.values());
+    console.log(finalEvents);
+    finalEvents.sort((a,b) => b.startDate.toMillis() - a.startDate.toMillis());
+
+    return res.status(200).json({
+      success: true,
+      message: "Events Successfully Retrieved",
+      events: finalEvents
+    });
+  } catch (error) {
+    console.error("Error fetching events", error);
+    return res.status(500).json({ error: "An unexpected error occurred."});
   }
 });
 
