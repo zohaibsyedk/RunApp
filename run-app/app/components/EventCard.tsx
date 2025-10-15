@@ -1,23 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { Event } from '../types';
 
 type EventCardProps = {
-    eventTitle: string;
-    orgUrl: string;
-    description: string;
-    date: string;
+    event: Event
+    onPress: (event: Event) => void;
 };
 
-const handleCardClick = () => {
-    console.log("Card Clicked")
-};
+const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
+    const handleCardClick = () => {
+        onPress(event);
+    };
 
-const EventCard: React.FC<EventCardProps> = ({ eventTitle, orgUrl, description, date }) => {
     return (
         <TouchableOpacity style={styles.cardContainer} onPress={() => {handleCardClick()}}>
-            <Text style={styles.title}>{eventTitle}</Text>
-            <Image style={styles.orgImage} alt='Organization Image' source={{ uri: orgUrl || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}} />
-            <Text>{description}</Text>
+            <Text style={styles.title}>{event.name}</Text>
+            <Image style={styles.orgImage} alt='Organization Image' source={{ uri: event.organizationPhotoURL || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}} />
+            <Text>{event.description}</Text>
         </TouchableOpacity>
     );
 };

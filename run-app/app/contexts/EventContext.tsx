@@ -6,7 +6,7 @@ interface EventContextType {
     events: Event[];
     loading: boolean;
     error: string;
-    fetchEvents: () => Promise<void>;
+    fetchEvents: (filter: string) => Promise<void>;
 }
 
 const EventContext = createContext<EventContextType | null>(null);
@@ -22,7 +22,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (filter: string = 'all') => {
     setLoading(true);
     setError('');
     try {
@@ -33,7 +33,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       }
       const token = await user.getIdToken();
 
-      const response = await fetch(`${API_URL}/api/events`, {
+      const response = await fetch(`${API_URL}/api/events?filter=${filter}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -62,7 +62,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     const auth = getAuth();
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user) {
-        fetchEvents();
+        fetchEvents('mine');
       } else {
         setEvents([]);
         setLoading(false);

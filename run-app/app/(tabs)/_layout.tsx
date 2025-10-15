@@ -24,14 +24,17 @@ const TabLayout: React.FC = () => {
             }
             
         }} >
-            <Tabs.Screen name="feed" options={{ 
+            <Tabs.Screen name="feed" options={{
+                headerShown: false, 
                 tabBarIcon: ({ color }) => <Ionicons name='home' size={40} color={color} /> 
             }} />
-            <Tabs.Screen name="activity" options={{ 
+            <Tabs.Screen name="activity" options={{
+                headerShown: false, 
                 tabBarIcon: ({ color }) => <Ionicons name='pulse' size={40} color={color} /> 
             }} />
             
             <Tabs.Screen name="events" options={{ 
+                headerShown: false, 
                 tabBarIcon: ({ color }) => <Ionicons name='add-circle' size={40} color={color} /> 
             }}
             listeners={{
@@ -43,9 +46,11 @@ const TabLayout: React.FC = () => {
              />
 
             <Tabs.Screen name="friends" options={{ 
+                headerShown: false, 
                 tabBarIcon: ({ color }) => <Ionicons name='people' size={40} color={color} /> 
             }} />
             <Tabs.Screen name="profile" options={{ 
+                headerShown: false, 
                 tabBarIcon: ({ color }) => <Ionicons name='person-circle' size={40} color={color} /> 
             }} />
         </Tabs>

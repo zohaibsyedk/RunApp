@@ -1,14 +1,13 @@
-export interface FirestoreTimestamp {
-    _seconds: number;
-    _nanoseconds: number;
-}
+import { Timestamp } from 'firebase/firestore';
   
 export interface Event {
     id: string;
     name: string;
     organizationId: string;
+    organizationPhotoURL: string;
+    organizationName: string;
     createdBy: string;
-    startDate: FirestoreTimestamp;
+    startDate: Timestamp;
     visibility: 'Public' | 'Private' | 'Friends';
     distance?: number;
     description?: string;
@@ -19,6 +18,17 @@ export interface Event {
         longitude: number;
         };
     };
-    createdAt: FirestoreTimestamp;
-    updatedAt: FirestoreTimestamp;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+}
+
+export interface Organization {
+    id: string;
+    name: string;
+    memberCount: number;
+    createdAt: Timestamp;
+    description: string;
+    organizationPhotoURL: string;
+    updatedAt: Timestamp;
+    visibility: 'Public' | 'Private' | 'Friends';
 }

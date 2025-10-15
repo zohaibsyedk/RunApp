@@ -7,6 +7,10 @@ import CustomSelector from './components/CustomSelector';
 import { Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useEvents } from './contexts/EventContext';
+import { useOrganizations } from './contexts/OrganizationContext';
+import { useAuth } from './contexts/AuthContext';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 
 const CreateEvent = () => {
@@ -27,15 +31,18 @@ const CreateEvent = () => {
 
     const [readyToSubmit, setReadyToSubmit] = useState(false);
 
-    const [organizations, setOrganizations] = useState([
-        { label: "My Personal Events", id: "org_user_123_personal" },
-        { label: "Twin Cities Runners", id: "org_tcr_456" },
-        { label: "Midwest Marathoners", id: "org_mwm_789" }
-    ]);
+    const { organizations, loading: isLoadingOrgs, error: orgError } = useOrganizations();
 
     const { fetchEvents } = useEvents();
+    const { user } = useAuth();
 
     const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
+
+    useEffect(() => {
+        if (organizations.length > 0 && !organizationId) {
+            setOrganizationId(organizations[0].id);
+        }
+    }, [organizations]);
 
     const onChangeDate = (event?: DateTimePickerEvent, selectedDate?: Date) => {
         if (selectedDate) {
@@ -112,7 +119,7 @@ const CreateEvent = () => {
                 throw new Error(errorData.error || "Failed to create event");
             }
 
-            await fetchEvents(); 
+            await fetchEvents('mine'); 
 
             const result = await response.json();
             console.log("Successfully created event:", result);
@@ -125,6 +132,8 @@ const CreateEvent = () => {
             setIsSubmitting(false);
         }
     }
+
+    const selectedOrgLabel = organizations.find(o => o.id === organizationId)?.name || '';
 
     return (
         <View style={styles.container}>
@@ -172,9 +181,9 @@ const CreateEvent = () => {
                                 optionItemStyle={{
                                     paddingVertical: 20,
                                 }}
-                                options={organizations.map(org => org.label)} 
+                                options={organizations.map(org => org.name)} 
                                 onSelect={(orgLabel) => {
-                                    const selectedOrg = organizations.find(o => o.label === orgLabel);
+                                    const selectedOrg = organizations.find(o => o.name === orgLabel);
                                     if (selectedOrg){
                                         setOrganizationId(selectedOrg.id);
                                     }

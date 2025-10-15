@@ -377,8 +377,8 @@ app.post('/api/events', verifyFirebaseToken, async (req, res) => {
           location?.geopoint?.longitude || 0
         )
       },
-      "createdAt": admin.firestore.FieldValue.serverTimestamp(), //required
-      "updatedAt": admin.firestore.FieldValue.serverTimestamp(), //required
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), //required
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(), //required
     };
 
     const eventRef = await firestore.collection('events').add(eventData);
@@ -387,7 +387,7 @@ app.post('/api/events', verifyFirebaseToken, async (req, res) => {
       success: true,
       message: "Event document created successfully.",
       event: { id: eventRef.id, ...eventData},
-    })
+    });
   } catch (error) {
     console.error("Error creating event:", error);
     return res.status(500).json({ error: "An unexpected error occured." });
@@ -398,38 +398,150 @@ app.get('/api/events', verifyFirebaseToken, async (req, res) => {
   //fetches user events and public events (will add friends later) and sorts by startDate
   try {
     const userId = req.user.uid;
+    const { filter } = req.query; // 'mine', 'public', 'public_not_mine', 'all', etc
 
-    const publicEventsQuery = firestore.collection('events').where('visibility', '==', 'Public');
-    const publicEventsSnapshot = await publicEventsQuery.get();
-    const publicEvents = [];
-    publicEventsSnapshot.forEach(doc => {
-      publicEvents.push({ id: doc.id, ...doc.data()});
-    });
+    const eventsCollection = firestore.collection('events');
+    let eventsQuery;
 
-    const userEventsQuery = firestore.collection('events').where('createdBy', '==', userId);
-    const userEventsSnapshot = await userEventsQuery.get();
-    const userEvents = [];
-    userEventsSnapshot.forEach(doc => {
-      userEvents.push({ id: doc.id, ...doc.data()});
-    });
-    console.log("Public Events:", publicEvents);
-    console.log("User Events:", userEvents);
-    const combinedEventsMap = new Map();
-    publicEvents.forEach(event => combinedEventsMap.set(event.id, event));
-    userEvents.forEach(event => combinedEventsMap.set(event.id, event));
+    switch (filter) {
+      case 'mine':
+        console.log(`Fetching events for user: ${userId}`);
+        eventsQuery = eventsCollection.where('createdBy', '==', userId);
+        break;
+      case 'public':
+        console.log('Fetching all public events');
+        eventsQuery = eventsCollection.where('visiblity', '==', 'Public');
+        break;
+      case 'public_not_mine':
+        console.log(`Fetching public events not created by user: ${userId}`);
+        eventsQuery = eventsCollection.where('visibility', '==', 'Public').where('createdBy', '!=', userId);
+        break;
+      default: //all events
+        console.log(`Fetching all events accessible by user: ${userId}`);
+        const publicEventsSnapshot = await eventsCollection.where('visibility', '==', 'Public').get();
+        const userEventsSnapshot = await eventsCollection.where('createdBy', '==', userId).get();
 
-    const finalEvents = Array.from(combinedEventsMap.values());
-    console.log(finalEvents);
-    finalEvents.sort((a,b) => b.startDate.toMillis() - a.startDate.toMillis());
+        const combinedEventsMap = new Map();
+        publicEventsSnapshot.forEach(doc => combinedEventsMap.set(doc.id, { id: doc.id, ...doc.data() }));
+        userEventsSnapshot.forEach(doc => combinedEventsMap.set(doc.id, { id: doc.id, ...doc.data() }));
+
+        const finalEvents = Array.from(combinedEventsMap.values());
+        finalEvents.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
+
+        const enrichedEvents = await Promise.all(
+          finalEvents.map(async (event) => {
+            let orgPhotoURL = null;
+            let orgName = 'Personal Event';
+
+            if (event.organizationId === event.createdBy) {
+              const userDoc = await firestore.collection('users').doc(event.createdBy).get();
+              if (userDoc.exists) {
+                orgPhotoURL = userDoc.data().photoURL;
+                console.log(orgPhotoURL);
+              }
+            } else {
+              const orgDoc = await firestore.collection('organizations').doc(event.organizationId).get();
+              if (orgDoc.exists) {
+                orgPhotoURL = orgDoc.data().organizationPhotoURL;
+                orgName = orgDoc.data().name;
+              }
+            }
+
+            return {
+              ...event,
+              organizationPhotoURL: orgPhotoURL || 'https://placehold.co/100x100/EEE/31343C?text=Org',
+              organizationName: orgName
+            };
+          })
+        );
+
+        enrichedEvents.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
+
+        return res.status(200).json({
+          success: true,
+          message: 'Successfully retrieved all user and public events.',
+          events: enrichedEvents
+        });
+    }
+
+    const snapshot = await eventsQuery.get();
+    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    events.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
 
     return res.status(200).json({
       success: true,
-      message: "Events Successfully Retrieved",
-      events: finalEvents
+      message: `Events Successfully Retrieved with filter: ${filter}`,
+      events: events
     });
   } catch (error) {
     console.error("Error fetching events", error);
     return res.status(500).json({ error: "An unexpected error occurred."});
+  }
+});
+
+app.post('/api/organizations', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { name, organizationPhotoURL, visibility, description } = req.body;
+
+    if (!name || !organizationPhotoURL || !visibility) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    const organizationData = {
+      name: name, //required
+      organizationPhotoURL: organizationPhotoURL, //required
+      visibility: visibility, //required
+      createdBy: userId, //required
+      description: description || '', //optional
+      memberCount: 1, //required
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), //required
+      updatedAt: admin.firestore.FieldValue.serverTimestamp() //required
+    };
+
+    const organizationRef = await firestore.collection('organizations').add(organizationData);
+
+    return res.status(201).json({
+      success: true,
+      message: "Organization document created successfully.",
+      organization: { id: organizationRef.id, ...organizationData},
+    });
+  } catch (error) {
+    console.error("Error creating event:", error);
+    return res.status(500).json({ error: "An unexpected error occured." });
+  }
+});
+
+app.get('/api/organizations', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { filter } = req.query;
+
+    const orgsCollection = firestore.collection('organizations');
+    let orgsQuery;
+
+    switch (filter) {
+      case 'public':
+        orgsQuery = orgsCollection.where('visibility', '==', 'Public');
+        break;
+      default: //default to 'mine'
+        orgsQuery = orgsCollection.where('createdBy', '==', userId);
+        break;
+    }
+
+    const snapshot = await orgsQuery.get();
+    const organizations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    organizations.sort((a, b) => a.name.localeCompare(b.name));
+
+    return res.status(200).json({
+      success: true,
+      message: `Organizations successfully retrieved with filter: ${filter || 'mine'}`,
+      organizations: organizations
+    });
+  } catch (error) {
+    console.error("Error fetching organizations", error);
+    return res.status(500).json({ error: "An unexpected error occurred while fetching organizations."});
   }
 });
 
