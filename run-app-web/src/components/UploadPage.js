@@ -2,6 +2,7 @@ import './UploadPage.css';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import AudioRecorder from './AudioRecorder';
 
 const UploadPage = () => {
     const shareId = useParams().share_id;
@@ -10,7 +11,7 @@ const UploadPage = () => {
         senderName: '',
         triggerType: 'distance',
         triggerValue: '',
-        audioFile: null,
+        audioFile: null, 
     });
     const [uploadStatus, setUploadStatus] = useState('idle'); //idle, uploading, success, error
     const [errorMessage, setErrorMessage] = useState('');
@@ -20,23 +21,29 @@ const UploadPage = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (e) => {
-        setFormData(prev => ({ ...prev, audioFile: e.target.files[0] }));
+    const handleAudioRecording = (audioBlob) => {
+        setFormData(prev => ({ ...prev, audioFile: audioBlob }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!formData.audioFile) {
+            setErrorMessage('Please record a voice message before sending.');
+            setUploadStatus('error');
+            return;
+        }
+
         setUploadStatus('uploading');
         setErrorMessage('');
         const submissionData = new FormData();
         submissionData.append('senderName', formData.senderName);
         submissionData.append('triggerType', formData.triggerType);
         submissionData.append('triggerValue', formData.triggerValue);
-        submissionData.append('audioFile', formData.audioFile);
+        submissionData.append('audioFile', formData.audioFile, 'cheer-recording.webm');
 
         try {
             const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
-
             const response = await axios.post(`${API_URL}/api/events/${shareId}/upload`, submissionData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
@@ -44,12 +51,10 @@ const UploadPage = () => {
             });
             console.log('Upload successful:', response.data);
             setUploadStatus('success');
-        }
-
-        catch (error) {
-            console.error('Upload failed:', error)
+        } catch (error) {
+            console.error('Upload failed:', error);
             setUploadStatus('error');
-            setErrorMessage(error.response?.data?.message || 'Failed to upload message. Please try again.')
+            setErrorMessage(error.response?.data?.message || 'Failed to upload message. Please try again.');
         }
     };
 
@@ -70,57 +75,26 @@ const UploadPage = () => {
             <form onSubmit={handleSubmit}>
                 <div className="formGroup">
                     <label htmlFor="senderName">Your Name:</label>
-                    <input
-                        type="text"
-                        id="senderName"
-                        name="senderName"
-                        value={formData.senderName}
-                        onChange={handleInputChange}
-                        placeholder="Enter your name"
-                        required
-                    />
+                    <input type="text" id="senderName" name="senderName" value={formData.senderName} onChange={handleInputChange} placeholder="Enter your name" required />
                 </div>
-
                 <div className="formGroup">
-                    <label htmlFor="triggerType">Play this message at:</label>
+                    <label>Play this message at:</label>
                     <div className="triggerInputGroup">
-                        <select
-                            id="triggerType"
-                            name="triggerType"
-                            value={formData.triggerType}
-                            onChange={handleInputChange}
-                        >
+                        <select id="triggerType" name="triggerType" value={formData.triggerType} onChange={handleInputChange}>
                             <option value="distance">A specific distance</option>
                             <option value="time">A specific time</option>
                         </select>
-                        <input
-                            type="number"
-                            name="triggerValue"
-                            value={formData.triggerValue}
-                            onChange={handleInputChange}
-                            step={formData.triggerType === 'distance' ? "0.1" : "1"}
-                            placeholder={formData.triggerType === 'distance' ? "0.5" : "30"}
-                            required
-                        />
+                        <input type="number" name="triggerValue" value={formData.triggerValue} onChange={handleInputChange} step={formData.triggerType === 'distance' ? "0.1" : "1"} placeholder={formData.triggerType === 'distance' ? "0.5" : "30"} required />
                         <span>{formData.triggerType === 'distance' ? 'miles' : 'seconds'}</span>
                     </div>
                 </div>
 
                 <div className="formGroup">
-                    <label htmlFor="audioFile">Voice Message:</label>
-                    <input
-                        className="uploadButton"
-                        type="file"
-                        id="audioFile"
-                        name="audioFile"
-                        accept="audio/*"
-                        capture="user"
-                        onChange={handleFileChange}
-                        required
-                    />
+                    <label>Voice Message:</label>
+                    <AudioRecorder onRecordingComplete={handleAudioRecording} />
                 </div>
 
-                <button className="submitButton" type="submit" disabled={uploadStatus === 'uploading'}>
+                <button className="submitButton" type="submit" disabled={uploadStatus === 'uploading' || !formData.audioFile}>
                     {uploadStatus === 'uploading' ? 'Sending...' : 'Send Cheer!'}
                 </button>
             </form>
@@ -131,7 +105,7 @@ const UploadPage = () => {
                 </div>
             )}
         </div>
-    )
+    );
 }
 
 export default UploadPage;
