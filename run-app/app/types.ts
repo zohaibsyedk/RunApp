@@ -1,5 +1,10 @@
 import { Timestamp } from 'firebase/firestore';
   
+export interface FirestoreTimestamp {
+    _nanoseconds: number;
+    _seconds: number;
+}
+
 export interface Event {
     id: string;
     name: string;
@@ -7,7 +12,7 @@ export interface Event {
     organizationPhotoURL: string;
     organizationName: string;
     createdBy: string;
-    startDate: Timestamp;
+    startDate: FirestoreTimestamp;
     visibility: 'Public' | 'Private' | 'Friends';
     distance?: number;
     description?: string;

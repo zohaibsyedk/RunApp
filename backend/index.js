@@ -541,7 +541,136 @@ app.get('/api/organizations', verifyFirebaseToken, async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching organizations", error);
-    return res.status(500).json({ error: "An unexpected error occurred while fetching organizations."});
+    return res.status(500).json({ error: "An unexpected error occurred while fetching organizations." });
+  }
+});
+
+app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.uid;
+    const { startTime } = req.body;
+
+    const sessionData = {
+      eventId: eventId,
+      userId: userId,
+      status: 'active',
+      startTime: startTime,
+      endTime: null,
+      elapsedTimeSeconds: null,
+      locations: null
+    }
+
+    const sessionRef = await firestore.collection('eventSessions').add(sessionData);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sessions successfully started',
+      session: { id: sessionRef.id, ...sessionData }
+    });
+  } catch (error) {
+    console.error("Error when starting event", error);
+    return res.status(500).json({ error: "An unexpected error occurred while starting the event." });
+  }
+});
+
+app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { sessionId } = req.params;
+    const { locations, elapsedTimeSeconds } = req.body;
+
+    if (!locations || !Array.isArray(locations) || locations.length === 0 || elapsedTimeSeconds === undefined) {
+      return res.status(400).json({ error: 'Missing or invalid locations or elapsedTimeSeconds.'});
+    }
+
+    const sessionRef = firestore.collection('eventSessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+
+    if (!sessionDoc.exists) {
+      return res.status(400).json({ error: 'Session not found.' });
+    }
+
+    const sessionData = sessionDoc.data();
+
+    if (sessionData.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to update this session.' });
+    }
+
+    if (sessionData.status !== 'active') {
+      return res.status(400).json({ error: 'This session is no longer active.' });
+    }
+
+    const newLocationPoints = locations.map(loc => {
+      return {
+        geopoint: new admin.firestore.GeoPoint(loc.latitude, loc.longitude),
+        timestamp: new Date(loc.timestamp)
+      };
+    });
+
+    await sessionRef.update({
+      locations: admin.firestore.FieldValue.arrayUnion(...newLocationPoints),
+      elapsedTimeSeconds: elapsedTimeSeconds
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Session ${sessionId} updated successfully`
+    });
+  } catch (error) {
+    console.error("Error updating session", error);
+    res.status(500).json({ error: "An unexpected error occured when updating the session."});
+  }
+});
+
+app.post('/api/sessions/:sessionId/stop', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { sessionId } = req.params;
+    const { locations, elapsedTimeSeconds } = req.body;
+
+    const sessionRef = firestore.collection('eventSessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+
+    if (!sessionDoc.exists) {
+      return res.status(404).json({ error: 'Session not found.' });
+    }
+
+    const sessionData = sessionDoc.data();
+
+    if (sessionData.userId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to stop this session.' });
+    }
+
+    if (sessionData.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        message: 'Session was already completed.'
+      });
+    }
+
+    const finalUpdateData = {
+      status: 'completed',
+      endTime: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (locations && Array.isArray(locations) && locations.length > 0) {
+      const newLocationPoints = locations.map(loc => ({
+        geopoint: new admin.firestore.GeoPoint(loc.latitude, loc.longitude),
+        timestamp: new Date(loc.timestamp)
+      }));
+      finalUpdateData.locations = admin.firestore.FieldValue.arrayUnion(...newLocationPoints);
+    }
+
+    await sessionRef.update(finalUpdateData);
+
+    return res.status(200).json({
+      success: true,
+      message: `Session ${sessionId} has been stopped.`
+    });
+  } catch (error) {
+    console.error('Error stopping session', error);
+    res.status(500).json({ error: 'An unexpected error occured while stopping the session.'});
   }
 });
 

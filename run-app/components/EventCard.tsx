@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Event } from '../types';
+import { Event } from '../app/types';
 
 type EventCardProps = {
     event: Event

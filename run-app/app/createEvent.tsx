@@ -3,7 +3,7 @@ import { Text, View, TouchableOpacity, TextInput, StyleSheet, ScrollView, Pressa
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent} from '@react-native-community/datetimepicker';
-import CustomSelector from './components/CustomSelector';
+import CustomSelector from '../components/CustomSelector';
 import { Timestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { useEvents } from './contexts/EventContext';

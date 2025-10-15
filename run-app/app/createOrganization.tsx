@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, TouchableOpacity, TextInput, StyleSheet, Pressable, Keyboard, ScrollView, Alert, Image, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import CustomSelector from './components/CustomSelector';
+import CustomSelector from '../components/CustomSelector';
 import * as ImagePicker from 'expo-image-picker';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirestore, doc, updateDoc, getDoc, writeBatch } from "firebase/firestore";

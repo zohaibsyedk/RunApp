@@ -9,7 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to track your run's route and distance while the app is active.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
+        "NSLocationAlwaysUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.nickmanna.runapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,6 +25,11 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

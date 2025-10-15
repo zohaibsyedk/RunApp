@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "./contexts/AuthContext";
 import { EventProvider } from "./contexts/EventContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
+import '../tasks/locationTask';
 
 const RootLayout = () => {
   return (

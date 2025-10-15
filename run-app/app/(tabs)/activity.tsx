@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import EventCard from "../components/EventCard";
+import EventCard from "../../components/EventCard";
 import { getAuth } from 'firebase/auth';
 import { Event } from '../types';
 import { useEvents } from '../contexts/EventContext';
-import EventModalFull from "../components/EventModalFull";
+import EventModalFull from "../../components/EventModalFull";
 
 const Activity: React.FC = () => {
 
