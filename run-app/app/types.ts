@@ -37,3 +37,20 @@ export interface Organization {
     updatedAt: Timestamp;
     visibility: 'Public' | 'Private' | 'Friends';
 }
+
+export interface Friendship {
+    id: string;
+    users: string[];
+    status: string;
+    requester: string;
+    createdAt: Timestamp;
+}
+
+export interface User {
+    id: string;
+    displayName: string;
+    accountType: string;
+    email: string;
+    photoUrl: string;
+    createdAt: Timestamp;
+}
