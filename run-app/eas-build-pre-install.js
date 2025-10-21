@@ -14,6 +14,6 @@ console.log("✅ Permissions adjusted successfully.");
 
 // Now, proceed with your original commands to clean and install.
 execSync("rm -rf node_modules", { stdio: "inherit" });
-execSync("npm install --legacy-peer-deps --unsafe-perm=true", { stdio: "inherit" });
+execSync("npm install  --unsafe-perm=true", { stdio: "inherit" });
 
 console.log("📦 Dependencies installed successfully.");
