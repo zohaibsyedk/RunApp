@@ -4,6 +4,10 @@ import { Event } from '../app/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../app/contexts/AuthContext';
 import * as Location from 'expo-location';
+import { getAuth } from 'firebase/auth';
+import TaskManager from 'expo-task-manager';
+import { LOCATION_TASK_NAME } from '@/tasks/locationTask';
+import * as SecureStore from 'expo-secure-store';
 
 interface EventModalProps {
     visible: boolean;
@@ -43,6 +47,8 @@ const formatTimeUntil = (startDate: Date): string => {
 
     return result.trim();
 };
+
+const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
 
 const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
     const [countdown, setCountdown] = useState('');
@@ -128,8 +134,49 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event }) 
         }
     };
     
-    const startSession = () => {
-        console.log('Starting the session!');
+    const startSession = async () => {
+        if (!user) {
+            return;
+        }
+        try {
+            const token = await getAuth().currentUser?.getIdToken();
+            const startTime = new Date();
+
+            const response = await fetch(`${API_URL}/api/events/${event.id}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    startTime: startTime.toISOString()
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to start session');
+            }
+
+            const { session } = await response.json();
+            const sessionId = session.id;
+
+            await SecureStore.setItemAsync('activeSessionId', sessionId);
+            await SecureStore.setItemAsync('activeSessionStartTime', startTime.getTime().toString());
+
+            await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+                accuracy: Location.Accuracy.BestForNavigation,
+                showsBackgroundLocationIndicator: true,
+                deferredUpdatesInterval: 5000,
+                deferredUpdatesDistance: 50
+            });
+
+            console.log(`Session started: ${sessionId}`);
+            onClose();
+            //navigate to the session page
+        } catch (error) {
+            console.error('Error starting session:', error);
+            return;
+        }
     };
 
     return (

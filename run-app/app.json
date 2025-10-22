@@ -14,7 +14,11 @@
         "NSLocationWhenInUseUsageDescription": "This app uses your location to track your run's route and distance while the app is active.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+
+        "UIBackgroundModes": [
+          "location"
+        ]
       },
       "bundleIdentifier": "com.nickmanna.runapp"
     },

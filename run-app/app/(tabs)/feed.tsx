@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useAuth } from "../contexts/AuthContext";
+import StopRunButton from '../../components/StopRunButton';
 
 const Feed = () => {
   const { logout } = useAuth();
@@ -14,6 +15,7 @@ const Feed = () => {
         <Text style={styles.description}>
           Track your runs, monitor your progress, and achieve your fitness goals.
         </Text>
+        <StopRunButton />
       </View>
     </View>
   );
