@@ -165,31 +165,31 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#333335",
     paddingTop: 40,
   },
   header: {
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#282828",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
+    color: "#F2F0EF",
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: "#DDDDDD",
   },
   content: {
     flex: 1,
     padding: 20,
   },
   profileCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#282828",
     borderRadius: 12,
     padding: 20,
     alignItems: "center",
@@ -218,15 +218,15 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#333",
+    color: "#F2F0EF",
     marginBottom: 5,
   },
   userEmail: {
     fontSize: 14,
-    color: "#666",
+    color: "#DDDDDD",
   },
   settings: {
-    backgroundColor: "#fff",
+    backgroundColor: "#282828",
     borderRadius: 12,
     marginBottom: 20,
     shadowColor: "#000",
@@ -248,20 +248,20 @@ const styles = StyleSheet.create({
   },
   settingText: {
     fontSize: 16,
-    color: "#333",
+    color: "#F2F0EF",
   },
   settingArrow: {
     fontSize: 18,
-    color: "#ccc",
+    color: "#DDDDDD",
   },
   logoutButton: {
-    backgroundColor: "#ff4444",
+    backgroundColor: "#7bcf56ff",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
   },
   logoutText: {
-    color: "#fff",
+    color: "#F2F0EF",
     fontSize: 16,
     fontWeight: "600",
   },

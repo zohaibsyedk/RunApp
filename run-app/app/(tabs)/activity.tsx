@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#333335",
     paddingTop: 40,
   },
   title: {
@@ -100,13 +100,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
     marginBottom: 10,
-    color: "#333",
+    color: "#F2F0EF",
   },
   subtitle: {
     fontSize: 18,
     textAlign: "center",
     marginBottom: 30,
-    color: "#666",
+    color: "#DDDDDD",
   },
   content: {
     flex: 1,
@@ -140,14 +140,14 @@ const styles = StyleSheet.create({
       alignItems: 'center',
   },
   activeFilter: {
-      backgroundColor: '#3498db',
+      backgroundColor: '#7bcf56ff',
   },
   filterText: {
-      color: '#333',
+      color: '#282828',
       fontWeight: '600',
   },
   activeFilterText: {
-      color: '#fff',
+      color: '#F2F0EF',
   },
 });
 

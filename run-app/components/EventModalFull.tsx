@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     },
     modalView: {
         margin: 20,
-        backgroundColor: 'white',
+        backgroundColor: '#1A1A1A',
         borderRadius: 20,
         padding: 35,
         alignItems: 'center',
@@ -248,23 +248,24 @@ const styles = StyleSheet.create({
         borderRadius: 50,
         marginBottom: 15,
         borderWidth: 2,
-        borderColor: '#eee',
+        borderColor: '#DDDDDD',
     },
     modalTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         marginBottom: 15,
         textAlign: 'center',
+        color: '#F2F0EF',
     },
     modalText: {
         marginBottom: 10,
         textAlign: 'center',
         fontSize: 16,
-        color: '#333',
+        color: '#F2F0EF',
     },
     description: {
         fontSize: 14,
-        color: '#666',
+        color: '#DDDDDD',
         textAlign: 'center',
         marginTop: 10,
     },
@@ -277,9 +278,9 @@ const styles = StyleSheet.create({
         height: 80,
         borderRadius: 40,
         padding: 10,
-        backgroundColor: 'rgba(230,0,0)',
+        backgroundColor: '#7bcf56ff',
         borderWidth: 3,
-        borderColor: 'rgba(90,70,70)',
+        borderColor: '#DDDDDD',
     },
     startButtonText: {
         marginTop: 20,
@@ -287,6 +288,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         textAlign: 'center',
+        color: '#F2F0EF',
     },
 });
 

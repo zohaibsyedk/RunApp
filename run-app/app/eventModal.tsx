@@ -32,11 +32,12 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         fontWeight: 'bold',
+        color: '#DDDDDD',
     },
     modalView: {
         height: '30%',
         width: '100%',
-        backgroundColor: 'rgb(233, 233, 233)',
+        backgroundColor: '#1A1A1A',
         padding: 20,
         borderRadius: 20,
         alignItems: 'center',
@@ -44,7 +45,7 @@ const styles = StyleSheet.create({
     },
     button: {
         borderRadius: 15,
-        backgroundColor: 'rgba(227, 227, 227)',
+        backgroundColor: '#333335',
         height: '28%',
         width: '85%',
         justifyContent: 'center',

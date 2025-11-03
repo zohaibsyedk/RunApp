@@ -16,7 +16,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onPress }) => {
         <TouchableOpacity style={styles.cardContainer} onPress={() => {handleCardClick()}}>
             <Text style={styles.title}>{event.name}</Text>
             <Image style={styles.orgImage} alt='Organization Image' source={{ uri: event.organizationPhotoURL || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}} />
-            <Text>{event.description}</Text>
+            <Text style={styles.descriptionText}>{event.description}</Text>
         </TouchableOpacity>
     );
 };
@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
         padding: 20,
         width: '100%',
         height: 90,
-        backgroundColor: 'rgba(200,200,200)',
+        backgroundColor: '#282828',
         borderRadius: 15,
         borderColor: 'rgba(170,170,170)',
         borderWidth: 2,
@@ -43,6 +43,12 @@ const styles = StyleSheet.create({
         top: 10,
         fontFamily: 'Lexend-Regular',
         fontSize: 18,
+        color: '#F2F0EF',
+    },
+    descriptionText: {
+        fontFamily: 'Lexend-Regular',
+        fontSize: 14,
+        color: '#DDDDDD',
     },
     orgImage: {
         position: 'relative',

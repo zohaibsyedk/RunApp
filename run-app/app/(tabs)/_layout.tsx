@@ -6,10 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 const TabLayout: React.FC = () => {
     return (
         <Tabs screenOptions={{
-            tabBarActiveTintColor: 'rgba(102, 222, 255)',
-            tabBarInactiveTintColor: 'rgba(191, 191, 191)',
+            tabBarActiveTintColor: '#7bcf56ff',
+            tabBarInactiveTintColor: '#DDDDDD',
             tabBarStyle: {
-                backgroundColor: '#f0f0f0',
+                backgroundColor: '#282828',
             },
             tabBarShowLabel: false,
             tabBarItemStyle: {
