@@ -558,7 +558,9 @@ app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => 
       startTime: startTime,
       endTime: null,
       elapsedTimeSeconds: null,
-      locations: null
+      locations: [],
+      elapsedDistanceMeters: 0,
+      lastKnownLocation: null
     }
 
     const sessionRef = await firestore.collection('eventSessions').add(sessionData);
@@ -574,8 +576,55 @@ app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => 
   }
 });
 
+function getDistance(lat1, lon1, lat2, lon2) {
+  console.log('getting distance');
+  const R = 6371;
+  const toRad = (value) => (value*Math.PI) / 180;
+  const dLat = toRad(lat2-lat1);
+  const dLon = toRad(lon2-lon1);
+  const rLat1 = toRad(lat1);
+  const rLat2 = toRad(lat2);
+
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(rLat1) * Math.cos(rLat2) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  const distance = R * c;
+  console.log('distance: '+distance);
+  return distance;
+}
+
+function calculateIncrementalDistance(sortedLocations, lastLocation) {
+  console.log('calculating incremental distance');
+  let distanceThisBatchKm = 0;
+  let currentLastLocation = lastLocation;
+  
+  const JITTER_THRESHOLD_METERS = 1.0; 
+
+  sortedLocations.forEach(loc => {
+    if (currentLastLocation) {
+      const lat1 = currentLastLocation.geopoint.latitude;
+      const lon1 = currentLastLocation.geopoint.longitude;
+      const lat2 = loc.geopoint.latitude;
+      const lon2 = loc.geopoint.longitude;
+      
+      const segmentDistanceKm = getDistance(lat1, lon1, lat2, lon2);
+      if (segmentDistanceKm * 1000 > JITTER_THRESHOLD_METERS) {
+        distanceThisBatchKm += segmentDistanceKm;
+      }
+    }
+    currentLastLocation = loc; // The last point becomes the next start point
+  });
+
+  return { distanceThisBatchKm, lastLocationInBatch: currentLastLocation };
+}
+
 app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res) => {
   try {
+    console.log('updating session');
     const userId = req.user.uid;
     const { sessionId } = req.params;
     const { locations, elapsedTimeSeconds } = req.body;
@@ -601,21 +650,36 @@ app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res
       return res.status(400).json({ error: 'This session is no longer active.' });
     }
 
+    const currentDistanceMeters = sessionData.elapsedDistanceMeters || 0;
+    const lastKnownLocation = sessionData.lastKnownLocation || null;
+
     const newLocationPoints = locations.map(loc => {
       return {
         geopoint: new admin.firestore.GeoPoint(loc.latitude, loc.longitude),
         timestamp: new Date(loc.timestamp)
       };
     });
+    newLocationPoints.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const { distanceThisBatchKm, lastLocationInBatch } = calculateIncrementalDistance(newLocationPoints, lastKnownLocation);
+    const distanceThisBatchMeters = distanceThisBatchKm * 1000;
+    const newTotalDistanceMeters = currentDistanceMeters + distanceThisBatchMeters;
 
-    await sessionRef.update({
+
+    const updateData = {
       locations: admin.firestore.FieldValue.arrayUnion(...newLocationPoints),
-      elapsedTimeSeconds: elapsedTimeSeconds
-    });
+      elapsedTimeSeconds: elapsedTimeSeconds,
+      elapsedDistanceMeters: newTotalDistanceMeters,
+      lastKnownLocation: lastLocationInBatch,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await sessionRef.update(updateData);
+
 
     return res.status(200).json({
       success: true,
-      message: `Session ${sessionId} updated successfully`
+      message: `Session ${sessionId} updated successfully`,
+      totalDistanceMeters: newTotalDistanceMeters
     });
   } catch (error) {
     console.error("Error updating session", error);
@@ -651,15 +715,30 @@ app.post('/api/sessions/:sessionId/stop', verifyFirebaseToken, async (req, res) 
 
     const finalUpdateData = {
       status: 'completed',
-      endTime: admin.firestore.FieldValue.serverTimestamp()
+      endTime: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
+    if (elapsedTimeSeconds !== undefined) {
+      finalUpdateData.elapsedTimeSeconds = elapsedTimeSeconds;
+    }
+
     if (locations && Array.isArray(locations) && locations.length > 0) {
+      const currentDistanceMeters = sessionData.elapsedDistanceMeters || 0;
+      const lastKnownLocation = sessionData.lastKnownLocation || null;
+
       const newLocationPoints = locations.map(loc => ({
         geopoint: new admin.firestore.GeoPoint(loc.latitude, loc.longitude),
         timestamp: new Date(loc.timestamp)
       }));
+      newLocationPoints.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+      const { distanceThisBatchKm, lastLocationInBatch } = calculateIncrementalDistance(newLocationPoints, lastKnownLocation);
+      const distanceThisBatchMeters = distanceThisBatchKm * 1000;
+      const newTotalDistanceMeters = currentDistanceMeters + distanceThisBatchMeters;
+
       finalUpdateData.locations = admin.firestore.FieldValue.arrayUnion(...newLocationPoints);
+      finalUpdateData.elapsedDistanceMeters = newTotalDistanceMeters;
+      finalUpdateData.lastKnownLocation = lastLocationInBatch;
     }
 
     await sessionRef.update(finalUpdateData);

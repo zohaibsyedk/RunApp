@@ -57,6 +57,7 @@ const StopRunButton = () => {
             await SecureStore.deleteItemAsync('activeSessionStartTime');
             setActiveSessionId(null);
             setStartTime(null);
+            console.log("Session stopped");
         }
     };
 
