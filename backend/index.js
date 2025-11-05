@@ -551,11 +551,11 @@ app.post('/api/events/:shareId/upload', upload.single('audioFile'), async (req, 
     }
 
     const messageId = Date.now().toString();
-    const eventId = `event_${shareId}`;
+    const sessionId = shareId;
     const extension = audioFile.originalname && audioFile.originalname.includes('.')
       ? audioFile.originalname.substring(audioFile.originalname.lastIndexOf('.') + 1)
       : 'mp3';
-    const objectPath = `audio/${eventId}/message_${messageId}.${extension}`;
+    const objectPath = `audio/${sessionId}/message_${messageId}.${extension}`;
 
     const file = bucket.file(objectPath);
     await file.save(audioFile.buffer, {
@@ -567,7 +567,7 @@ app.post('/api/events/:shareId/upload', upload.single('audioFile'), async (req, 
     const docRef = firestore.doc(`voiceMessages/message_${messageId}`);
     await docRef.set({
       messageId,
-      eventId,
+      sessionId,
       senderName,
       audioFileUrl: objectPath,
       triggerType,
