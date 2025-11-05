@@ -394,29 +394,66 @@ app.post('/api/events', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+const enrichEventWithOrgData = async (event) => {
+  let orgPhotoURL = null;
+  let orgName = null;
+
+  try {
+    if (event.organizationId === event.createdBy) {
+      const userDoc = await firestore.collection('users').doc(event.createdBy).get();
+      if (userDoc.exists) {
+        orgPhotoURL = userDoc.data().photoURL;
+        orgName = userDoc.data().displayName;
+      }
+    } else if (event.organizationId) {
+      const orgDoc = await firestore.collection('organizations').doc(event.organizationId).get();
+      if (orgDoc.exists) {
+        orgPhotoURL = orgDoc.data().organizationPhotoURL;
+        orgName = orgDoc.data().name;
+      }
+    }
+  } catch (err) {
+    console.error(`Failed to enrich event ${event.id}:`, err);
+  }
+
+  return {
+    ...event,
+    organizationPhotoURL: orgPhotoURL || 'https://placehold.co/100x100/EEE/31343C?text=Org',
+    organizationName: orgName
+  };
+};
+
 app.get('/api/events', verifyFirebaseToken, async (req, res) => {
-  //fetches user events and public events (will add friends later) and sorts by startDate
   try {
     const userId = req.user.uid;
-    const { filter } = req.query; // 'mine', 'public', 'public_not_mine', 'all', etc
-
+    const { filter } = req.query;
     const eventsCollection = firestore.collection('events');
-    let eventsQuery;
+
+    let rawEvents = [];
 
     switch (filter) {
-      case 'mine':
+      case 'mine': {
         console.log(`Fetching events for user: ${userId}`);
-        eventsQuery = eventsCollection.where('createdBy', '==', userId);
+        const query = eventsCollection.where('createdBy', '==', userId);
+        const snapshot = await query.get();
+        rawEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         break;
-      case 'public':
+      }
+      case 'public': {
         console.log('Fetching all public events');
-        eventsQuery = eventsCollection.where('visiblity', '==', 'Public');
+        const query = eventsCollection.where('visibility', '==', 'Public');
+        const snapshot = await query.get();
+        rawEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         break;
-      case 'public_not_mine':
+      }
+      case 'public_not_mine': {
         console.log(`Fetching public events not created by user: ${userId}`);
-        eventsQuery = eventsCollection.where('visibility', '==', 'Public').where('createdBy', '!=', userId);
+        const query = eventsCollection.where('visibility', '==', 'Public').where('createdBy', '!=', userId);
+        const snapshot = await query.get();
+        rawEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         break;
-      default: //all events
+      }
+      default: { // 'all' events
         console.log(`Fetching all events accessible by user: ${userId}`);
         const publicEventsSnapshot = await eventsCollection.where('visibility', '==', 'Public').get();
         const userEventsSnapshot = await eventsCollection.where('createdBy', '==', userId).get();
@@ -425,57 +462,26 @@ app.get('/api/events', verifyFirebaseToken, async (req, res) => {
         publicEventsSnapshot.forEach(doc => combinedEventsMap.set(doc.id, { id: doc.id, ...doc.data() }));
         userEventsSnapshot.forEach(doc => combinedEventsMap.set(doc.id, { id: doc.id, ...doc.data() }));
 
-        const finalEvents = Array.from(combinedEventsMap.values());
-        finalEvents.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
-
-        const enrichedEvents = await Promise.all(
-          finalEvents.map(async (event) => {
-            let orgPhotoURL = null;
-            let orgName = 'Personal Event';
-
-            if (event.organizationId === event.createdBy) {
-              const userDoc = await firestore.collection('users').doc(event.createdBy).get();
-              if (userDoc.exists) {
-                orgPhotoURL = userDoc.data().photoURL;
-                console.log(orgPhotoURL);
-              }
-            } else {
-              const orgDoc = await firestore.collection('organizations').doc(event.organizationId).get();
-              if (orgDoc.exists) {
-                orgPhotoURL = orgDoc.data().organizationPhotoURL;
-                orgName = orgDoc.data().name;
-              }
-            }
-
-            return {
-              ...event,
-              organizationPhotoURL: orgPhotoURL || 'https://placehold.co/100x100/EEE/31343C?text=Org',
-              organizationName: orgName
-            };
-          })
-        );
-
-        enrichedEvents.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
-
-        return res.status(200).json({
-          success: true,
-          message: 'Successfully retrieved all user and public events.',
-          events: enrichedEvents
-        });
+        rawEvents = Array.from(combinedEventsMap.values());
+        break;
+      }
     }
 
-    const snapshot = await eventsQuery.get();
-    const events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    events.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
+    const enrichedEvents = await Promise.all(
+      rawEvents.map(event => enrichEventWithOrgData(event))
+    );
+
+    enrichedEvents.sort((a, b) => b.startDate.toMillis() - a.startDate.toMillis());
 
     return res.status(200).json({
       success: true,
-      message: `Events Successfully Retrieved with filter: ${filter}`,
-      events: events
+      message: `Events Successfully Retrieved with filter: ${filter || 'all'}`,
+      events: enrichedEvents
     });
+
   } catch (error) {
     console.error("Error fetching events", error);
-    return res.status(500).json({ error: "An unexpected error occurred."});
+    return res.status(500).json({ error: "An unexpected error occurred." });
   }
 });
 

@@ -66,13 +66,6 @@ const CreateEvent = () => {
     const handleSubmit = async () => {
         if (!readyToSubmit || isSubmitting) return;
         setIsSubmitting(true);
-        console.log(`Submitting Event\n
-            Name: ${eventName}\n
-            Organization ID: ${organizationId}\n
-            startDate: ${startDate.toISOString()}\n
-            visibility: ${visibility}\n
-            Distance: ${distanceText}\n
-            Description: ${description}\n`);
 
         try{
             const auth = getAuth();
@@ -122,7 +115,6 @@ const CreateEvent = () => {
             await fetchEvents('mine'); 
 
             const result = await response.json();
-            console.log("Successfully created event:", result);
             Alert.alert("Success!", "Your event has been created.", [
                 { text: "OK", onPress: () => router.back()}
             ]);
@@ -186,38 +178,43 @@ const CreateEvent = () => {
                                     const selectedOrg = organizations.find(o => o.name === orgLabel);
                                     if (selectedOrg){
                                         setOrganizationId(selectedOrg.id);
+                                        console.log("selectedOrg.id", selectedOrg.id);
+                                    }
+                                    if (selectedOrg?.id === user?.uid) {
+                                        setVisibility('Private');
+                                        console.log(organizationId, user?.uid);
                                     }
                                 }}
                                 placeholder=''
                             />
                         </View>
-
-                        <View style={styles.inputContainer}>
-                            {visibility === '' && (
-                                <Text style={styles.placeholderText} pointerEvents='none'>
-                                    Visiblity
-                                    <Text style={styles.asterisk}> *</Text>
-                                </Text>
-                            )}
-                            <CustomSelector
-                                options={["Public", "Private", "Friends"]}
-                                onSelect={setVisibility}
-                                placeholder={visibility}
-                                buttonStyle={{
-                                    backgroundColor: 'none',
-                                    height: 40,
-                                    width: '100%',
-                                    paddingVertical: 5,
-                                    borderWidth: 0,
-                                    right: '5%'
-                                }}
-                                buttonTextStyle={{
-                                    color: 'rgba(227, 227, 227)',
-                                    fontFamily: 'Lexend-Regular'
-                                }}
-                            />
-                        </View>
-
+                        {organizationId !== user?.uid && (
+                            <View style={styles.inputContainer}>
+                                {visibility === '' && (
+                                    <Text style={styles.placeholderText} pointerEvents='none'>
+                                        Visiblity
+                                        <Text style={styles.asterisk}> *</Text>
+                                    </Text>
+                                )}
+                                <CustomSelector
+                                    options={["Public", "Private", "Friends"]}
+                                    onSelect={setVisibility}
+                                    placeholder={visibility}
+                                    buttonStyle={{
+                                        backgroundColor: 'none',
+                                        height: 40,
+                                        width: '100%',
+                                        paddingVertical: 5,
+                                        borderWidth: 0,
+                                        right: '5%'
+                                    }}
+                                    buttonTextStyle={{
+                                        color: 'rgba(227, 227, 227)',
+                                        fontFamily: 'Lexend-Regular'
+                                    }}
+                                />
+                            </View>
+                        )}
                         <View style={styles.inputContainer}>
                             <Text style={styles.placeholderText} pointerEvents='none'>
                                 Start Date
@@ -260,7 +257,6 @@ const CreateEvent = () => {
                                     "Kilometer(s)",
                                 ]} 
                                 onSelect={(distanceType) => {
-                                    console.log(`Selected Distance Type: ${distanceType}`);
                                     setDistanceType(distanceType);
                                 }}
                                 placeholder='Mile(s)'
