@@ -26,283 +26,10 @@ const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET || `${process.env.GOOGLE_CLOUD_PROJECT}.appspot.com`;
 const bucket = storage.bucket(bucketName);
 
-const webhookSubscriptions = new Map();
-
-app.post('/strava/webhook/setup', async (req, res) => {
-  try {
-    const clientId = process.env.STRAVA_CLIENT_ID ? process.env.STRAVA_CLIENT_ID.trim() : null;
-    const clientSecret = process.env.STRAVA_CLIENT_SECRET ? process.env.STRAVA_CLIENT_SECRET.trim() : null;
-    const callbackUrl = 'https://run-app-backend-179019793982.us-central1.run.app/strava/webhook';
-
-    console.log('🔧 Webhook setup started', {
-      clientId: clientId ? '***' + clientId.slice(-4) : 'MISSING',
-      clientSecret: clientSecret ? '***' + clientSecret.slice(-4) : 'MISSING',
-      callbackUrl: callbackUrl
-    });
-
-    if (!clientId || !clientSecret || !callbackUrl) {
-      return res.status(200).json({ error: 'Missing Strava configuration' });
-    }
-    console.log('fetching response');
-    const response = await fetch('https://www.strava.com/api/v3/push_subscriptions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        callback_url: callbackUrl,
-        verify_token: 'verification_token_2134haw2195218sadh213124512f2121'
-      })
-    });
-
-    const data = await response.json();
-    console.log('data:', data);
-
-    if (!response.ok) {
-      return res.status(400).json({
-        error: 'Failed to create webhook subscription',
-        details: data
-      });
-    }
-
-    console.log("Webhook subscription created", data);
-
-    await firestore.collection('config').doc('webhook').set({
-      subscriptionId: data.id,
-      createdAt: new Date().toISOString(),
-      callbackUrl: callbackUrl
-    });
-
-    return res.json({
-      success: true,
-      message: 'Webhook subscription created successfully',
-      subscription: data
-    });
-
-
-  } catch (err) {
-    console.error('Webhook subscription error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-const WEBHOOK_VERIFY_TOKEN = 'verification_token_2134haw2195218sadh213124512f2121';
-
-app.get('/strava/webhook', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-
-  console.log('Webhook verification request received');
-
-  if (mode === 'subscribe' && token === WEBHOOK_VERIFY_TOKEN) {
-    console.log('SUCCESS: Webhook has been verified');
-    res.json({ 'hub.challenge': challenge });
-  } else {
-    console.error('ERROR: Verification token mismatch');
-    res.sendStatus(403);
-  }
-});
-
-app.post('/strava/webhook', async (req, res) => {
-  try {
-    res.status(200).send('EVENT_RECEIVED');
-
-    if (req.body && req.body.object_type === 'activity') {
-      const { object_id, owner_id, aspect_type, updates } = req.body;
-
-      console.log(`Activity Update for athlete ${owner_id}:`, {
-        activityId: object_id,
-        updateType: aspect_type,
-        updates: updates
-      });
-
-      await handleActivityUpdate(owner_id, object_id, updates);
-    }
-  } catch (err) {
-    // Log errors, but don't send a 500 status to Strava.
-    // Strava considers any non-200 response a failure and will retry.
-    console.error('Webhook processing error:', err);
-  }
-});
-
-async function handleActivityUpdate(athleteId, activityId, updates) {
-  try {
-    console.log(`Processing update for athlete ${athleteId}, activity ${activityId}`);
-    const activeSessions = await firestore.collection('monitoringSessions')
-      .where('athleteId', '==', athleteId.toString())
-      .where('status', '==', 'active')
-      .get();
-    
-      if (activeSessions.empty) {
-        console.log(`No active sessions for athlete ${athleteId}`);
-        return;
-      }
-
-      for (const sessionDoc of activeSessions.docs) {
-        const session = sessionDoc.data();
-        await processSessionUpdate(session, activityId, updates);
-      }
-  } catch (err) {
-    console.error('Error handling activity update:', err);
-  }
-}
-
-async function processSessionUpdate(session, activityId, updates) {
-  const { eventId, mileMarkers = [], triggeredMarkers = [] } = session;
-
-  if (session.activityId !== activityId.toString()) {
-    return;
-  }
-
-  if (updates && updates.distance) {
-    const distanceMiles = updates.distance / 1609.34;
-    console.log(`Athlete ${session.athleteId}: ${distanceMiles.toFixed(2)} miles`)
-  }
-}
+const WEB_URL = 'https://runapp-472401.web.app';
 
 app.get('/', (req, res) => {
   res.send('Hello from your Node.js backend on GCP! 👋');
-});
-
-app.post('/strava/exchange', async (req, res) => {
-  try {
-    console.log('exchange');
-    const { code, redirectUri } = req.body || {};
-    if (!code || !redirectUri) {
-      return res.status(400).json({ error: 'Missing code or redirectUri' });
-    }
-
-    const clientId = process.env.STRAVA_CLIENT_ID ? process.env.STRAVA_CLIENT_ID.trim() : null;
-    const clientSecret = process.env.STRAVA_CLIENT_SECRET ? process.env.STRAVA_CLIENT_SECRET.trim() : null;
-
-    if (!clientId || !clientSecret) {
-      return res.status(500).json({ error: 'Server not configured for Strava' });
-    }
-
-    const tokenResp = await fetch('https://www.strava.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-      }),
-    });
-
-    const data = await tokenResp.json();
-    if (!tokenResp.ok) {
-      return res.status(tokenResp.status).json({ error: 'Strava token exchange failed', details: data });
-    }
-
-    return res.json({
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: data.expires_at,
-      athlete: data.athlete,
-    });
-  } catch (err) {
-    console.error('Exchange error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.post('/strava/uploads', async (req, res) => {
-  try {
-    const { accessToken, activityData } = req.body;
-    if (!accessToken) {
-      return res.status(400).json({ error: "Access Token Required" });
-    }
-    if (!activityData || !activityData.file || !activityData.name || !activityData.data_type || !activityData.external_id) {
-      return res.status(400).json({
-        error: 'Missing required activity data',
-        required: [ 'file', 'name', 'description', 'data_type', 'external_id'],
-        optional: [ 'description' ]
-      })
-    }
-    const stravaActivity = {
-      file: activityData.file,
-      name: activityData.name,
-      description: activityData.description || '',
-      data_type: activityData.data_type,
-      external_id: activityData.external_id
-    };
-
-    const response = await fetch('https://www.strava.com/api/v3/uploads', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(stravaActivity)
-    });
-  }
-  catch (err) {
-    console.error('Error creating uploading run data: ', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.post('/strava/activites', async (req, res) => {
-  try {
-    const { accessToken, activityData } = req.body;
-    if (!accessToken) {
-      return res.status(400).json({ error: "Access Token Required" });
-    }
-    if (!activityData || !activityData.name || !activityData.type) {
-      return res.status(400).json({
-        error: "Missing required activity data",
-        required: [ 'name', 'type'],
-        optional: ['description', 'distance', 'elapsed_time', 'start_date_local']
-      });
-    }
-
-    //ready for strava fetch
-    const stravaActivity = {
-      //required fields
-      name: activityData.name,
-      type: activityData.type,
-      sport_type: activityData.sport_type || activityData.type,
-      //optional fields
-      start_date_local: activityData.start_date_local || new Date().toISOString(),
-      elapsed_time: activityData.elapsed_time || 0,
-      description: activityData.description || '',
-      distance: activityData.distance || 0.0,
-      trainer: activityData.trainer || 0,
-      commute: activityData.commute || 0
-    };
-
-    const response = await fetch('https://www.strava.com/api/v3/activities', {
-      method: "POST",
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(stravaActivity)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Strava API error:', data);
-      return res.status(response.status).json({ 
-        error: 'Failed to create activity on Strava', 
-        details: data 
-      });
-    }
-
-    return res.json({
-      success: true,
-      activity: data,
-      message: "Activity created successfully on Strava"
-    });
-
-  } catch (err) {
-    console.error('Error creating Strava activity:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
 });
 
 const verifyFirebaseToken = async (req, res, next) => {
@@ -550,8 +277,7 @@ app.get('/api/organizations', verifyFirebaseToken, async (req, res) => {
     return res.status(500).json({ error: "An unexpected error occurred while fetching organizations." });
   }
 });
-
-app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => {
+app.post('/api/events/:eventId/sessions', verifyFirebaseToken, async (req, res) => {
   try {
     const { eventId } = req.params;
     const userId = req.user.uid;
@@ -560,7 +286,7 @@ app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => 
     const sessionData = {
       eventId: eventId,
       userId: userId,
-      status: 'active',
+      status: 'registered',
       startTime: startTime,
       endTime: null,
       elapsedTimeSeconds: null,
@@ -573,13 +299,60 @@ app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => 
 
     return res.status(200).json({
       success: true,
-      message: 'Sessions successfully started',
-      session: { id: sessionRef.id, ...sessionData }
+      message: 'Session successfully created',
+      session: { id: sessionRef.id, ...sessionData },
+      shareableLink: `${WEB_URL}/share/${sessionRef.id}`
     });
   } catch (error) {
-    console.error("Error when starting event", error);
-    return res.status(500).json({ error: "An unexpected error occurred while starting the event." });
+    console.error("Error creating session", error);
+    return res.status(500).json({ error: "An unexpected error occurred while creating the session." });
   }
+});
+
+app.get('/api/events/:eventId/sessions', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const userId = req.user.uid;
+
+    if (!eventId) {
+      return res.status(400).json({ success: false, error: 'Event ID is required.' });
+    }
+
+    const eventSessionsCollection = firestore.collection('eventSessions');
+
+    const sessionQuery = eventSessionsCollection
+      .where('eventId', '==', eventId)
+      .where('userId', '==', userId)
+      .limit(1);
+
+    const snapshot = await sessionQuery.get();
+
+    if (snapshot.empty) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found. User has not joined this event.'
+      });
+    }
+
+    const sessionDoc = snapshot.docs[0];
+    const sessionData = {
+      id: sessionDoc.id,
+      ...sessionDoc.data()
+    };
+
+    return res.status(200).json({
+      success: true,
+      message: 'Session successfully retrieved.',
+      session: sessionData
+    });
+  } catch (error) {
+    console.error("Error fetching user session", error);
+    return res.status(500).json({ error: "An unexpected error occurred while fetching the session."});
+  }
+});
+
+app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => {
+  console.log('unfinished event start');
 });
 
 function getDistance(lat1, lon1, lat2, lon2) {

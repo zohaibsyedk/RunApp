@@ -8,11 +8,13 @@ import { getAuth } from 'firebase/auth';
 import TaskManager from 'expo-task-manager';
 import { LOCATION_TASK_NAME } from '@/tasks/locationTask';
 import * as SecureStore from 'expo-secure-store';
+import * as Clipboard from 'expo-clipboard';
 
 interface EventModalProps {
     visible: boolean;
     onClose: () => void;
     event: Event | null;
+    eventSessionId: string | null;
 }
 
 const requestPermissions = async () => {
@@ -50,7 +52,7 @@ const formatTimeUntil = (startDate: Date): string => {
 
 const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
 
-const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event }) => {
+const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, eventSessionId }) => {
     const [countdown, setCountdown] = useState('');
     const { user } = useAuth();
 
@@ -179,6 +181,20 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event }) 
         }
     };
 
+    const copyLinkToClipboard = async () => {
+        if (!eventSessionId) {
+            Alert.alert(
+                "Can't Share Yet",
+                "You must join this event first to get your unique share link."
+            );
+            return;
+        }
+        
+        const link = `https://runapp-472401.web.app/share/${eventSessionId}`;
+        await Clipboard.setStringAsync(link);
+        Alert.alert('Link Copied!', 'Your unique cheer link has been copied to the clipboard.');
+    }
+
     return (
         <Modal
             animationType='slide'
@@ -189,9 +205,12 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event }) 
             <View style={styles.centeredView}>
                 <View style={styles.modalView}>
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                        <Ionicons name="close-circle" size={30} color="#555" />
+                        <Text style={styles.closeButtonText}>x</Text>
                     </TouchableOpacity>
 
+                    <TouchableOpacity style={styles.shareButton} onPress={() => {copyLinkToClipboard()}}>
+                        <Ionicons name="link-outline" size={25} color="#F2F0EF" style={styles.shareButtonIcon}/>
+                    </TouchableOpacity>
                     <Image
                         source={{ uri: event.organizationPhotoURL || 'https://placehold.co/100x100/EEE/31343C?text=Org' }}
                         style={styles.orgImage}
@@ -239,8 +258,22 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         position: 'absolute',
-        top: 10,
-        right: 10,
+        top: '5%',
+        right: '5%',
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: '#333335',
+        borderWidth: 3,
+        borderColor: '#555',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#555',
+        lineHeight: 20,
     },
     orgImage: {
         width: 100,
@@ -289,6 +322,23 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         color: '#F2F0EF',
+    },
+    shareButton: {
+        position: 'absolute',
+        top: '5%',
+        left: '5%',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#01BAEF',
+        borderWidth: 3,
+        borderColor: '#DDDDDD',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    shareButtonIcon: {
+        transform: [{ rotate: '135deg'}],
+        transformOrigin: 'center',
     },
 });
 

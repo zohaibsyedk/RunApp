@@ -12,6 +12,7 @@ const Activity: React.FC = () => {
   const [filter, setFilter] = useState('all');
   const { fetchEvents, events, loading, error } = useEvents();
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
+  const [eventSessionId, setEventSessionId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   useEffect(() => {
@@ -30,8 +31,27 @@ const Activity: React.FC = () => {
     console.log(event.name);
   })
 
-  const onCardClicked = (ev: Event) => {
+  const onCardClicked = async (ev: Event) => {
     setCurrentEvent(ev);
+    const token = await getAuth().currentUser?.getIdToken();
+    if (!token) throw new Error("User not authenticated");
+    const response = await fetch(`${API_URL}/api/events/${ev.id}/sessions`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setEventSessionId(data.session.id);
+    }
+    else if (response.status === 404) {
+      console.log('User has not joined the event yet');
+      setEventSessionId(null);
+    } else {
+      throw new Error('Failed to fetch session');
+    }
     setIsModalVisible(true);
     console.log('Event ID:',ev.id)
   }
@@ -47,6 +67,7 @@ const Activity: React.FC = () => {
         visible={isModalVisible}
         onClose={() => onCardClosed()}
         event={currentEvent}
+        eventSessionId={eventSessionId}
       />
       <View style={styles.filterContainer}>
         <TouchableOpacity 

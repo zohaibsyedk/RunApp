@@ -22,7 +22,23 @@ const AudioRecorder = ({ onRecordingComplete }) => {
         } else {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorderRef.current = new MediaRecorder(stream);
+
+                const supportedTypes = [
+                    'audio/mp4',
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                ];
+
+                const mimeType = supportedTypes.find(type => MediaRecorder.isTypeSupported(type));
+
+                if (!mimeType) {
+                    alert("No supported audio format found for recording.");
+                    return;
+                }
+
+                const options = { mimeType, audioBitsPerSecond: 128000 };
+                mediaRecorderRef.current = new MediaRecorder(stream, options);
+
                 audioChunksRef.current = [];
 
                 mediaRecorderRef.current.ondataavailable = (event) => {
@@ -32,7 +48,7 @@ const AudioRecorder = ({ onRecordingComplete }) => {
                 };
 
                 mediaRecorderRef.current.onstop = () => {
-                    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+                    const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.mimeType });
                     const url = URL.createObjectURL(audioBlob);
                     setAudioURL(url);
                     onRecordingComplete(audioBlob);

@@ -12,7 +12,6 @@ import { useAuth } from './contexts/AuthContext';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
-
 const CreateEvent = () => {
     const [eventName, setEventName] = useState('');
 
@@ -115,13 +114,29 @@ const CreateEvent = () => {
             await fetchEvents('mine'); 
 
             const result = await response.json();
-            Alert.alert("Success!", "Your event has been created.", [
-                { text: "OK", onPress: () => router.back()}
-            ]);
+
+            const sessionRef = await fetch(`${API_URL}/api/events/${result.event.id}/sessions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    startTime: new Date().toISOString()
+                })
+            });
+            if (!sessionRef.ok) {
+                throw new Error("Failed to create session");
+            }
+
+            const sessionResponse = await sessionRef.json();
+            const shareableLink = sessionResponse.shareableLink;
+
         } catch (error) {
             console.error("Error submitting:", error);
         } finally {
             setIsSubmitting(false);
+            router.back();
         }
     }
 
