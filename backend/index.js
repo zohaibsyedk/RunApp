@@ -277,27 +277,46 @@ app.get('/api/organizations', verifyFirebaseToken, async (req, res) => {
     return res.status(500).json({ error: "An unexpected error occurred while fetching organizations." });
   }
 });
-app.post('/api/events/:eventId/sessions', verifyFirebaseToken, async (req, res) => {
+app.post('/api/events/:eventId/join', verifyFirebaseToken, async (req, res) => {
   try {
     const { eventId } = req.params;
     const userId = req.user.uid;
-    const { startTime } = req.body;
+    const eventSessionsCollection = firestore.collection('eventSessions');
+
+    const existingSessionQuery = eventSessionsCollection
+      .where('eventId', '==', eventId)
+      .where('userId', '==', userId)
+      .limit(1);
+    
+    const existingSessionSnapshot = await existingSessionQuery.get();
+    
+    if (!existingSessionSnapshot.empty) {
+      const existingDoc = existingSessionSnapshot.docs[0];
+      return res.status(200).json({
+        success: true,
+        message: 'User is already registered for this event.',
+        session: { id: existingDoc.id, ...existingDoc.data() },
+        shareableLink: `${WEB_URL}/share/${existingDoc.id}`
+      });
+    }
 
     const sessionData = {
       eventId: eventId,
       userId: userId,
-      status: 'registered',
-      startTime: startTime,
+      status: 'registered', // Default status
+      startTime: null,
       endTime: null,
-      elapsedTimeSeconds: null,
+      elapsedTimeSeconds: 0, // Start at 0
       locations: [],
-      elapsedDistanceMeters: 0,
-      lastKnownLocation: null
+      elapsedDistanceMeters: 0, // Start at 0
+      lastKnownLocation: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }
 
     const sessionRef = await firestore.collection('eventSessions').add(sessionData);
 
-    return res.status(200).json({
+    return res.status(201).json({
       success: true,
       message: 'Session successfully created',
       session: { id: sessionRef.id, ...sessionData },

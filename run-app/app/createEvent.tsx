@@ -73,7 +73,7 @@ const CreateEvent = () => {
                 throw new Error("No user signed in.");
             }
             const token = await user.getIdToken();
-
+            
             //convert distance
             let distanceInKm = 0;
             if (distanceText) {
@@ -115,15 +115,12 @@ const CreateEvent = () => {
 
             const result = await response.json();
 
-            const sessionRef = await fetch(`${API_URL}/api/events/${result.event.id}/sessions`, {
+            const sessionRef = await fetch(`${API_URL}/api/events/${result.event.id}/join`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    startTime: new Date().toISOString()
-                })
+                }
             });
             if (!sessionRef.ok) {
                 throw new Error("Failed to create session");

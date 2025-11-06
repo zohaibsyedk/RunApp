@@ -15,6 +15,7 @@ interface EventModalProps {
     onClose: () => void;
     event: Event | null;
     eventSessionId: string | null;
+    onEventJoined: (newSession: any) => void;
 }
 
 const requestPermissions = async () => {
@@ -52,8 +53,9 @@ const formatTimeUntil = (startDate: Date): string => {
 
 const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
 
-const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, eventSessionId }) => {
+const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, eventSessionId, onEventJoined }) => {
     const [countdown, setCountdown] = useState('');
+    const [isJoining, setIsJoining] = useState(false);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -195,6 +197,33 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
         Alert.alert('Link Copied!', 'Your unique cheer link has been copied to the clipboard.');
     }
 
+    const handleJoinEvent = async () => {
+        console.log(`joining event: ${event.id}`);
+        setIsJoining(true);
+        try {
+            const token = await getAuth().currentUser?.getIdToken();
+            const sessionRef = await fetch(`${API_URL}/api/events/${event.id}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!sessionRef.ok) {
+                throw new Error("Failed to create session");
+            }
+
+            const sessionResponse = await sessionRef.json();
+
+            onEventJoined(sessionResponse.session);
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Could not join event.");
+        } finally {
+            setIsJoining(false);
+        }
+    }
+
     return (
         <Modal
             animationType='slide'
@@ -207,10 +236,15 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                     <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                         <Text style={styles.closeButtonText}>x</Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.shareButton} onPress={() => {copyLinkToClipboard()}}>
-                        <Ionicons name="link-outline" size={25} color="#F2F0EF" style={styles.shareButtonIcon}/>
-                    </TouchableOpacity>
+                    {(eventSessionId) ? ( 
+                        <TouchableOpacity style={styles.shareButton} onPress={() => {copyLinkToClipboard()}}>
+                            <Ionicons name="link-outline" size={25} color="#F2F0EF" style={styles.shareButtonIcon}/>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.joinButton} onPress={() => {handleJoinEvent()}}>
+                            <Ionicons name="add" size={25} color="#F2F0EF"/>
+                        </TouchableOpacity>
+                    )}
                     <Image
                         source={{ uri: event.organizationPhotoURL || 'https://placehold.co/100x100/EEE/31343C?text=Org' }}
                         style={styles.orgImage}
@@ -339,6 +373,19 @@ const styles = StyleSheet.create({
     shareButtonIcon: {
         transform: [{ rotate: '135deg'}],
         transformOrigin: 'center',
+    },
+    joinButton: {
+        position: 'absolute',
+        top: '5%',
+        left: '5%',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#7bcf56',
+        borderWidth: 3,
+        borderColor: '#DDDDDD',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

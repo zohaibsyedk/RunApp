@@ -68,6 +68,9 @@ const Activity: React.FC = () => {
         onClose={() => onCardClosed()}
         event={currentEvent}
         eventSessionId={eventSessionId}
+        onEventJoined={(newSession) => {
+          setEventSessionId(newSession.id);
+        }}
       />
       <View style={styles.filterContainer}>
         <TouchableOpacity 
@@ -90,7 +93,7 @@ const Activity: React.FC = () => {
         </TouchableOpacity>
       </View>
       
-      {!loading && (<View style={styles.content}>
+      {!loading ? (<View style={styles.content}>
         <ScrollView style={styles.cardContainer}>
           {events.length > 0 ? (events.map(event => (
             <EventCard 
@@ -103,7 +106,11 @@ const Activity: React.FC = () => {
             <Text style={styles.description}>No events found. Try creating one!</Text>
           )}
         </ScrollView>
-      </View>)}
+      </View>) : (
+        <View>
+          <Text style={styles.description}>Loading Events...</Text>
+        </View>
+      )}
     </View>
   );
 };
