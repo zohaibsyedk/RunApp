@@ -74,12 +74,6 @@ const Activity: React.FC = () => {
       />
       <View style={styles.filterContainer}>
         <TouchableOpacity 
-            style={[styles.filterButton, filter === 'all' && styles.activeFilter]} 
-            onPress={() => setFilter('all')}
-        >
-            <Text style={[styles.filterText, filter === 'all' && styles.activeFilterText]}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
             style={[styles.filterButton, filter === 'mine' && styles.activeFilter]} 
             onPress={() => setFilter('mine')}
         >

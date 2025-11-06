@@ -370,8 +370,58 @@ app.get('/api/events/:eventId/sessions', verifyFirebaseToken, async (req, res) =
   }
 });
 
-app.post('/api/events/:eventId/start', verifyFirebaseToken, async (req, res) => {
-  console.log('unfinished event start');
+app.post('/api/sessions/:sessionId/start', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.uid;
+    const { startTime } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({ success: false, error: 'Session ID is required.' });
+    }
+
+    if (!startTime) {
+      return res.status(400).json({ success: false, error: 'Start Time is required.' });
+    }
+
+    const sessionRef = firestore.collection('eventSessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+
+    if (!sessionDoc.exists) {
+      return res.status(404).json({ success: false, error: "Session not found." });
+    }
+
+    const sessionData = sessionDoc.data();
+
+    if (sessionData.userId !== userId) {
+      return res.status(403).json({ success: false, error: 'Forbidden. You do not own this session.' });
+    }
+    if (sessionData.status === 'active') {
+      return res.status(200).json({ success: true, message: 'Session is already active.' });
+    }
+    if (sessionData.status === 'completed') {
+      return res.status(400).json({ success: false, error: 'This session has already been completed.'});
+    }
+    if (sessionData.status !== 'registered') {
+      return res.status(400).json({ success: false, error: `Session is in an invalid state (${sessionData.status})`});
+    }
+    
+    const updateData = {
+      status: 'active',
+      startTime: admin.firestore.Timestamp.fromDate(new Date(startTime)),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await sessionRef.update(updateData);
+
+    return res.status(200).json({
+      success: true,
+      message: `Session ${sessionId} successfully started.`
+    });
+  } catch (error) {
+    console.error("Error when starting the session", error);
+    return res.status(500).json({ error: "An unexpected error occurred while starting the session." });
+  }
 });
 
 function getDistance(lat1, lon1, lat2, lon2) {
