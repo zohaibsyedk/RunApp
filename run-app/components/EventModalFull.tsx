@@ -93,7 +93,7 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
         if (existingStatus === 'granted') {
             Alert.alert(
                 'Confirmation',
-                'Are you sure you want to start this event? Please notify other runners.',
+                'Are you sure you want to start this run?',
                 [
                     {
                         text: 'No',
@@ -146,7 +146,7 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
             const token = await getAuth().currentUser?.getIdToken();
             const startTime = new Date();
 
-            const response = await fetch(`${API_URL}/api/events/${event.id}/start`, {
+            const response = await fetch(`${API_URL}/api/sessions/${eventSessionId}/start`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -161,10 +161,11 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                 throw new Error('Failed to start session');
             }
 
-            const { session } = await response.json();
-            const sessionId = session.id;
+            if (!eventSessionId) {
+                throw new Error('No sessionId');
+            }
 
-            await SecureStore.setItemAsync('activeSessionId', sessionId);
+            await SecureStore.setItemAsync('activeSessionId', eventSessionId);
             await SecureStore.setItemAsync('activeSessionStartTime', startTime.getTime().toString());
 
             await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
@@ -174,9 +175,8 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                 deferredUpdatesDistance: 50
             });
 
-            console.log(`Session started: ${sessionId}`);
+            console.log(`Session started: ${eventSessionId}`);
             onClose();
-            //navigate to the session page
         } catch (error) {
             console.error('Error starting session:', error);
             return;
@@ -222,7 +222,11 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
         } finally {
             setIsJoining(false);
         }
-    }
+    };
+
+    const handleOverrideStartTime = async () => {
+        console.log("overriding time");
+    };
 
     return (
         <Modal
@@ -255,10 +259,23 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                     <Text style={styles.description}>{event.description}</Text>
                     <Text style={styles.modalText}>Time until Start: {countdown}</Text>
 
-                    {user?.uid == event.createdBy && (
+                    {user?.uid == event.createdBy && ((event.startDate._seconds*1000) > Date.now()) && (
+                        <View style={styles.overrideStartTimeContainer}>
+                            <TouchableOpacity style={styles.overrideStartTimeButton} onPress={() => handleOverrideStartTime()}>
+                                <Text style={styles.overrideStartTimeText}>OVERRIDE START TIME</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {eventSessionId && (
                         <View style={styles.startButtonContainer}>
-                            <Text style={styles.startButtonText}>Manually Start Race</Text>
-                            <TouchableOpacity style={styles.startButton} onPress={() => handleStartEvent()} />
+                            <Text style={styles.startButtonText}>Start Race</Text>
+                            {(event.startDate._seconds*1000) < Date.now() ? (
+                                <TouchableOpacity style={styles.startButton} onPress={() => handleStartEvent()} />
+                            ) : (
+                                <TouchableOpacity style={styles.startButtonLocked}>
+                                    <Ionicons name="lock-closed-outline" color="#1A1A1A" size={40}/>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     )}
                 </View>
@@ -349,6 +366,17 @@ const styles = StyleSheet.create({
         borderWidth: 3,
         borderColor: '#DDDDDD',
     },
+    startButtonLocked: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        padding: 10,
+        backgroundColor: 'rgba(76, 128, 54, 0.5)',
+        borderWidth: 3,
+        borderColor: '#DDDDDD',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     startButtonText: {
         marginTop: 20,
         marginBottom: 20,
@@ -387,6 +415,26 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    overrideStartTimeContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    overrideStartTimeText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        color: '#F2F0EF',
+    },
+    overrideStartTimeButton: {
+        backgroundColor: '#D52941',
+        width: 250,
+        height: 50,
+        borderRadius: 20,
+        borderWidth: 3,
+        borderColor: '#DDDDDD',
+        justifyContent: 'center',
+        alignItems: 'center',
+    }
 });
 
 export default EventModalFull;

@@ -4,6 +4,7 @@
     "name": "run-app",
     "slug": "run-app",
     "version": "1.0.0",
+    "backgroundColor": "#333335",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,9 +16,9 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
         "NSLocationAlwaysUsageDescription": "This app uses your location to track your run's route and distance, even when the app is in the background.",
         "ITSAppUsesNonExemptEncryption": false,
-
         "UIBackgroundModes": [
-          "location"
+          "location",
+          "audio"
         ]
       },
       "bundleIdentifier": "com.nickmanna.runapp"
@@ -54,7 +55,8 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

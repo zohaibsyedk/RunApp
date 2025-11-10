@@ -45,11 +45,13 @@ const styles = StyleSheet.create({
     },
     button: {
         borderRadius: 15,
-        backgroundColor: '#333335',
+        backgroundColor: '#282828',
         height: '28%',
         width: '85%',
         justifyContent: 'center',
         alignItems: 'center',
+        borderColor: "#DDDDDD",
+        borderWidth: 1,
     }
 })
 

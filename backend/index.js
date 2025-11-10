@@ -498,7 +498,8 @@ app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res
       return res.status(400).json({ error: 'This session is no longer active.' });
     }
 
-    const currentDistanceMeters = sessionData.elapsedDistanceMeters || 0;
+    const lastDistanceMeters = sessionData.elapsedDistanceMeters || 0;
+    const lastElapsedTimeSeconds = sessionData.elapsedTimeSeconds || 0;
     const lastKnownLocation = sessionData.lastKnownLocation || null;
 
     const newLocationPoints = locations.map(loc => {
@@ -510,8 +511,31 @@ app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res
     newLocationPoints.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     const { distanceThisBatchKm, lastLocationInBatch } = calculateIncrementalDistance(newLocationPoints, lastKnownLocation);
     const distanceThisBatchMeters = distanceThisBatchKm * 1000;
-    const newTotalDistanceMeters = currentDistanceMeters + distanceThisBatchMeters;
+    const newTotalDistanceMeters = lastDistanceMeters + distanceThisBatchMeters;
 
+    const voiceMessagesRef = sessionRef.collection('voiceMessages');
+
+    const distanceQuery = voiceMessagesRef
+      .where('triggerType', '==', 'distance')
+      .where('triggerValue', '>', lastDistanceMeters)
+      .where('triggerValue', '<=', newTotalDistanceMeters)
+      .get();
+    
+    const timeQuery = voiceMessagesRef
+      .where('triggerType', '==', 'time')
+      .where('triggerValue', '>', lastElapsedTimeSeconds)
+      .where('triggerValue', '<=', elapsedTimeSeconds)
+      .get();
+
+    const [distanceMessages, timeMessages] = await Promise.all([
+      distanceQuery,
+      timeQuery,
+    ]);
+
+    const distanceMessagesData = distanceMessages.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const timeMessagesData = timeMessages.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const messagesToPlay = [...distanceMessagesData, ...timeMessagesData];
 
     const updateData = {
       locations: admin.firestore.FieldValue.arrayUnion(...newLocationPoints),
@@ -527,7 +551,7 @@ app.post('/api/sessions/:sessionId/update', verifyFirebaseToken, async (req, res
     return res.status(200).json({
       success: true,
       message: `Session ${sessionId} updated successfully`,
-      totalDistanceMeters: newTotalDistanceMeters
+      messagesToPlay: messagesToPlay
     });
   } catch (error) {
     console.error("Error updating session", error);
@@ -601,6 +625,55 @@ app.post('/api/sessions/:sessionId/stop', verifyFirebaseToken, async (req, res) 
   }
 });
 
+app.get('/api/sessions/:sessionId', async (req, res) => {
+  try {
+    console.log("getting user and event data for share website");
+    const { sessionId } = req.params;
+
+    const sessionDocRef = firestore.collection('eventSessions').doc(sessionId);
+
+    const sessionDoc = await sessionDocRef.get();
+
+    if (!sessionDoc.exists) {
+      return res.status(404).json({ success: false, error: "No Event Session found" });
+    }
+
+    const sessionData = sessionDoc.data();
+
+    if (!sessionData.userId || !sessionData.eventId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Session data is incomplete. Missing user or event reference." 
+      });
+    }
+
+    const userDocRef = firestore.collection('users').doc(sessionData.userId);
+    const eventDocRef = firestore.collection('events').doc(sessionData.eventId);
+
+    const [userDoc, eventDoc] = await Promise.all([
+      userDocRef.get(),
+      eventDocRef.get()
+    ]);
+
+    if (!userDoc.exists || !eventDoc.exists) {
+      return res.status(404).json({ success: false, error: "No user or event found in the Event Session" });
+    }
+
+    const userData = userDoc.data();
+    const eventData = eventDoc.data();
+
+    return res.status(200).json({
+      success: true,
+      message: "Event and User Data for the Session successfully retrieved.",
+      event: eventData,
+      user: userData
+    });
+  } catch (error) {
+    console.error("Error Retrieving Session User Data");
+    res.status(500).json({ error: 'An unexpected error occurred while retrieving user session data.' });
+  }
+});
+
 app.post('/api/events/:shareId/upload', upload.single('audioFile'), async (req, res) => {
   try {
     const { shareId } = req.params;
@@ -633,18 +706,23 @@ app.post('/api/events/:shareId/upload', upload.single('audioFile'), async (req, 
       metadata: { cacheControl: 'public, max-age=31536000' },
     });
 
-    const docRef = firestore.doc(`voiceMessages/message_${messageId}`);
+    const docRef = firestore.collection('eventSessions').doc(sessionId).collection('voiceMessages').doc(messageId);
     await docRef.set({
       messageId,
-      sessionId,
       senderName,
       audioFileUrl: objectPath,
       triggerType,
       triggerValue: triggerType === 'distance' ? parseFloat(triggerValue) : parseInt(triggerValue, 10),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      played: false,
     });
 
-    return res.status(200).json({ status: 'ok', messageId, eventId, audioFileUrl: objectPath });
+    return res.status(200).json({
+      success: true,
+      messageId,
+      sessionId,
+      audioFileUrl: objectPath
+    });
   } catch (err) {
     console.error('Error handling upload', err);
     return res.status(500).json({ error: 'Internal server error' });

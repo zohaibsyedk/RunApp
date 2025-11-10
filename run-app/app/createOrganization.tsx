@@ -128,7 +128,7 @@ const CreateOrganization = () => {
         <View style={styles.container}>
             <Pressable onPress={() => {Keyboard.dismiss();}} >
                 <TouchableOpacity style={styles.backButton} onPress={() => {router.back()}} >
-                    <Ionicons name='arrow-back' color='black' size={34}/>
+                    <Ionicons name='arrow-back' color='#F2F0EF' size={34}/>
                 </TouchableOpacity>
                 <Text style={styles.title}>Create Organization</Text>
                 <View style={styles.formContainer}>
@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: '#333335',
     },
     backButton: {
         position: 'absolute',
@@ -222,14 +223,15 @@ const styles = StyleSheet.create({
         fontSize: 18,
         top: '13%',
         textAlign: 'center',
+        color: '#F2F0EF',
     },
     input: {
         fontSize: 16,
         height: '100%',
-        color: 'rgba(227, 227, 227)',
+        color: '#DDDDDD',
     },
     scrollView: {
-        backgroundColor: 'rgba(227, 227, 227, 0.6)',
+        backgroundColor: '#333335',
         padding: 5,
         borderRadius: 15,
     },
@@ -240,23 +242,23 @@ const styles = StyleSheet.create({
     },
     placeholderText: {
         fontFamily: 'Lexend-Regular',
-        color: 'rgba(227, 227, 227)',
+        color: '#DDDDDD',
         position: 'absolute',
         left: 10,
         fontSize: 16,
     },
     asterisk: {
         fontFamily: 'Lexend-Regular',
-        color: 'red',
+        color: '#D52941',
     },
     inputContainer: {
         justifyContent: 'center',
         height: 50,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#DDDDDD',
         borderRadius: 8,
         paddingHorizontal: 10,
-        backgroundColor: 'rgba(140,140,140)',
+        backgroundColor: '#282828',
         marginBottom: 20,
     },
     createButton: {
@@ -267,20 +269,20 @@ const styles = StyleSheet.create({
     createText: {
         fontFamily: 'Lexend-Regular',
         fontSize: 16,
-        color: 'black'
+        color: '#F2F0EF'
     },
     createTextReady: {
         fontFamily: 'Lexend-Regular',
         fontSize: 16,
-        color: 'blue'
+        color: '#01BAEF'
     },
     descriptionContainer: {
         height: 100,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: '#DDDDDD',
         borderRadius: 8,
         paddingHorizontal: 10,
-        backgroundColor: 'rgba(140,140,140)',
+        backgroundColor: '#282828',
         marginBottom: 20,
     },
     orgImage: {

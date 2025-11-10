@@ -9,6 +9,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { rgbaArrayToRGBAColor } from "react-native-reanimated/lib/typescript/Colors";
+import * as Audio from 'expo-audio';
 
 //firebase
 import { auth } from '../firebaseConfig.js'; // Adjust path if needed
@@ -17,6 +18,7 @@ import {
   signInWithEmailAndPassword ,
   updateProfile
 } from "firebase/auth";
+import { Background } from "@react-navigation/elements";
 
 
 type Props = {
@@ -33,7 +35,18 @@ type Props = {
 //})
 //console.log("Redirect URI:", redirectUri);
 
-
+async function configureBackgroundAudio() {
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecording: false,
+      shouldPlayInBackground: true,
+      playsInSilentMode: true,
+    });
+    console.log('Background audio mode configured')
+  } catch (e) {
+    console.error('Failed to set audio mode', e);
+  }
+}
 
 const Index: React.FC<Props> = ({ title, onPress }) => {
 
@@ -118,94 +131,107 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
   
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ImageBackground 
-        source={{ uri: "https://31.media.tumblr.com/8f1f6eba7015f9bd1df78e845b58fce2/tumblr_mph68j4o901r8epnko1_400.gif"}}
-        style={styles.container}
-      >
-        <Text style={styles.title}>Welcome to RunApp</Text>
-        <Text style={styles.subtitle}>Login or Sign Up to continue</Text>
-        <TouchableOpacity style={styles.button} onPress={() => {setShowSignIn(true); setShowSignUp(false);}} activeOpacity={0.7}>
-          <Text style={styles.btext}>Login</Text>
-        </TouchableOpacity>
-        {showSignIn && 
-          <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>Login</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              keyboardType="email-address"
-              placeholderTextColor="#FAF9F6"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#FAF9F6"
-              secureTextEntry={true}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity style={styles.submitButton} onPress={handleLogin}>
-              <Text style={styles.submitText}>Login</Text>
+      <View style={styles.containerWrapper}>
+        <ImageBackground 
+          source={{ uri: "https://31.media.tumblr.com/8f1f6eba7015f9bd1df78e845b58fce2/tumblr_mph68j4o901r8epnko1_400.gif"}}
+          style={StyleSheet.absoluteFill}
+        >
+          <View style={[StyleSheet.absoluteFill, styles.overlay]} />
+          <View style={styles.container}>
+            <Text style={styles.title}>Welcome to RunApp</Text>
+            <Text style={styles.subtitle}>Login or Sign Up to continue</Text>
+            <TouchableOpacity style={[styles.button, showSignIn && styles.buttonActive]} onPress={() => {setShowSignIn(true); setShowSignUp(false);}} activeOpacity={0.7}>
+              <Text style={styles.btext}>Login</Text>
             </TouchableOpacity>
-          </View>
-        }
-        <TouchableOpacity style={styles.button} onPress={() => {setShowSignIn(false); setShowSignUp(true);}} activeOpacity={0.7}>
-          <Text style={styles.btext}>Sign up</Text>
-        </TouchableOpacity>
-        {showSignUp &&
-          <View style={styles.formContainer}>
-            <Text style={styles.formTitle}>Sign Up</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="First Name"
-              placeholderTextColor="#FAF9F6"
-              value={firstName}
-              onChangeText={setFirstName}
-            />
-            <TextInput 
-              style={styles.input}
-              placeholder="Last Name"
-              placeholderTextColor="#FAF9F6"
-              value={lastName}
-              onChangeText={setLastName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              keyboardType="email-address"
-              placeholderTextColor="#FAF9F6"
-              value={email}
-              onChangeText={setEmail}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#FAF9F6"
-              secureTextEntry={true}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity style={styles.submitButton} onPress={handleSignUp} disabled={isLoading}>
-              <Text style={styles.submitText}>Sign Up</Text>
+            {showSignIn && 
+              <View style={styles.formContainer}>
+                <Text style={styles.formTitle}>Login</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  keyboardType="email-address"
+                  placeholderTextColor="#FAF9F6"
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#FAF9F6"
+                  secureTextEntry={true}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity style={styles.submitButton} onPress={handleLogin}>
+                  <Text style={styles.submitText}>Login</Text>
+                </TouchableOpacity>
+              </View>
+            }
+            <TouchableOpacity style={[styles.button, showSignUp && styles.buttonActive]} onPress={() => {setShowSignIn(false); setShowSignUp(true);}} activeOpacity={0.7}>
+              <Text style={styles.btext}>Sign up</Text>
             </TouchableOpacity>
+            {showSignUp &&
+              <View style={styles.formContainer}>
+                <Text style={styles.formTitle}>Sign Up</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  placeholderTextColor="#FAF9F6"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                />
+                <TextInput 
+                  style={styles.input}
+                  placeholder="Last Name"
+                  placeholderTextColor="#FAF9F6"
+                  value={lastName}
+                  onChangeText={setLastName}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  keyboardType="email-address"
+                  placeholderTextColor="#FAF9F6"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#FAF9F6"
+                  secureTextEntry={true}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity style={styles.submitButton} onPress={handleSignUp} disabled={isLoading}>
+                  <Text style={styles.submitText}>Sign Up</Text>
+                </TouchableOpacity>
+              </View>
+            }
           </View>
-        }
-      </ImageBackground>
+        </ImageBackground>
+      </View>
+      
     </TouchableWithoutFeedback>
   );
 };
 
 const styles = StyleSheet.create({
+  containerWrapper: {
+    flex: 1,
+    backgroundColor: '#333335'
+  },
+  overlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)'
+  },
   container: {
     flex: 1,
     paddingTop: 80,
     justifyContent: "center",
     alignItems: "center",
     gap: "2%",
-    backgroundColor: "#3C91FF",
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   formContainer: {
     alignItems: 'center',
@@ -218,13 +244,13 @@ const styles = StyleSheet.create({
     fontFamily: "LexendBold",
     fontSize: 28,
     textAlign: "center",
-    color: "#3E4744",
+    color: "#F2F0EF",
   },
   formTitle: {
     fontFamily: "LexendBold",
     fontSize: 24,
     textAlign: 'center',
-    color: '#f5f5f5',
+    color: '#F2F0EF',
   },
   subtitle: {
     fontFamily: "LexendRegular",
@@ -232,10 +258,10 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     fontSize: 18,
     textAlign: "center",
-    color: "#373F30",
+    color: "#DDDDDD",
   },
   button: {
-    backgroundColor: "#A0D4F2",
+    backgroundColor: "#282828",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 20,
@@ -244,10 +270,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     height: 60,
     width: "80%",
+    borderWidth: 1,
+    borderColor: '#7bcf56',
+  },
+  buttonActive: {
+    borderWidth: 3,
   },
   btext: {
     fontFamily: "LexendBold",
-    color: "#fff",
+    color: "#F2F0EF",
     fontSize: 20,
   },
   content: {
@@ -259,7 +290,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
-    color: "#555",
+    color: "#F2F0EF",
     paddingHorizontal: 20,
   },
   input: {
@@ -270,22 +301,22 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: 'rgba(55,63,48,0.6)',
-    color: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    color: '#F2F0EF',
   },
   submitButton: {
     width: 200,
     height: 50,
     borderRadius: 20,
-    backgroundColor: '#477994',
+    backgroundColor: '#7bcf56',
     alignItems: 'center',
     justifyContent: 'center',
   },
   submitText: {
     fontFamily: 'LexendBold',
-    color: '#f5f5f5',
+    color: '#F2F0EF',
     fontSize: 20,
   }
 });
-
+configureBackgroundAudio();
 export default Index;

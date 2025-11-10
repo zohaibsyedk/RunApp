@@ -15,7 +15,7 @@
     font-size: 16px;
     font-weight: bold;
     color: white;
-    background-color: #007bff;
+    background-color: #01BAEF;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -24,7 +24,7 @@
 }
 
 .recordButton:hover {
-    background-color: #0056b3;
+    background-color: #00a7d5;
 }
 
 .recordButton:active {
@@ -32,11 +32,11 @@
 }
 
 .recordButton.recording {
-    background-color: #dc3545;
+    background-color: #D52941;
 }
 
 .recordButton.recording:hover {
-    background-color: #c82333;
+    background-color: #bb2438;
 }
 
 .recordIcon {
