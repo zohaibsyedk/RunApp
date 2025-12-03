@@ -169,7 +169,7 @@ app.get('/api/events', verifyFirebaseToken, async (req, res) => {
       }
       case 'joined': {
         console.log(`Fetching events for user ${userId}`);
-        const sessionsQuery = eventSessionsCollection.where('userId', '==', userId).where('status', '!=', 'completed');
+        const sessionsQuery = eventSessionsCollection.where('userId', '==', userId).where('status', '==', 'registered');
         const sessionsSnapshot = await sessionsQuery.get();
 
         const joinedEventIds = sessionsSnapshot.docs
@@ -688,9 +688,9 @@ app.get('/api/sessions/:sessionId', verifyFirebaseToken, async (req, res) => {
       });
     }
 
-    let photoURL = "";
+    let organization = null;
 
-    if (organizationId != userId) {
+    if (eventData.organizationId != userId) {
       const organizationDocRef = firestore.collection('organizations').doc(eventData.organizationId);
       const organizationDoc = await organizationDocRef.get();
       if (!organizationDoc.exists) {
@@ -699,9 +699,9 @@ app.get('/api/sessions/:sessionId', verifyFirebaseToken, async (req, res) => {
   
       const organizationData = organizationDoc.data();
 
-      photoURL = organizationData.organizationPhotoURL;
+      organization = organizationData;
     } else {
-      photoURL = userData.photoURL;
+      organization = userData;
     }
 
     
@@ -713,7 +713,7 @@ app.get('/api/sessions/:sessionId', verifyFirebaseToken, async (req, res) => {
       message: "Event and User Data for the Session successfully retrieved.",
       event: eventData,
       session: sessionData,
-      photoURL: photoURL,
+      organization: organization,
       user: userData
     });
   } catch (error) {

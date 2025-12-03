@@ -10,6 +10,8 @@ import { LOCATION_TASK_NAME } from '@/tasks/locationTask';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
+import { getFirestore, doc, updateDoc, getDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 interface EventModalProps {
     visible: boolean;
@@ -58,12 +60,13 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
     const [countdown, setCountdown] = useState('');
     const [isJoining, setIsJoining] = useState(false);
     const { user } = useAuth();
+    const [overriden, setOverriden] = useState(false);
 
     useEffect(() => {
         if (!visible || !event) {
             return;
         }
-
+        setOverriden(false);
         const eventDate = event.startDate?._seconds
         ? new Date(event.startDate._seconds * 1000)
         : null;
@@ -227,7 +230,59 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
     };
 
     const handleOverrideStartTime = async () => {
-        console.log("overriding time");
+        console.log("Attempting to override start time...");
+
+        if (!event || !eventSessionId) {
+            Alert.alert("Error", "Event or Session ID is missing.");
+            return;
+        }
+
+        if (user?.uid !== event.createdBy) {
+            Alert.alert("Forbidden", "You do not have permission to override the start time for this event.");
+            return;
+        }
+
+        const newStartTime = new Date();
+        const eventDocRef = doc(db, 'events', event.id);
+
+        Alert.alert(
+            "Override Start Time",
+            `Are you sure you want to set the official event start time to now (${newStartTime.toLocaleString()})? This action cannot be undone.`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Override Now",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            // 1. Update the Event document in Firestore
+                            await updateDoc(eventDocRef, {
+                                startDate: newStartTime, // Firestore converts JS Date object to Timestamp
+                                updatedAt: new Date(),
+                            });
+
+                            // 2. Clear all existing active sessions' start times (Optional but Recommended for a clean restart)
+                            // NOTE: For a global change to the event start time, we only need to update the `event` document.
+                            // The session's status will be checked against the *event's* start time.
+
+                            Alert.alert(
+                                "Success", 
+                                "Event start time has been successfully overridden to the current time.",
+                                [{ text: "OK", onPress: () => setOverriden(true) }]
+                            );
+                            
+                            // Because the event object passed to this component is a prop, we need 
+                            // to force a re-fetch or state update in the parent to see the countdown change immediately.
+                            // For simplicity, we just rely on the component re-rendering/re-mounting when reopened.
+
+                        } catch (error) {
+                            console.error("Error overriding event start time:", error);
+                            Alert.alert("Error", "Failed to update the event start time.");
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -259,9 +314,12 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                     <Text style={styles.modalText}>Hosted by: {event.organizationName}</Text>
                     <Text style={styles.modalText}>Starts: {formattedStartDate}</Text>
                     <Text style={styles.description}>{event.description}</Text>
-                    <Text style={styles.modalText}>Time until Start: {countdown}</Text>
-
-                    {user?.uid == event.createdBy && ((event.startDate._seconds*1000) > Date.now()) && (
+                    {overriden ? (
+                        <Text style={styles.modalText}>Time until Start: Event has started</Text>
+                    ) : (
+                        <Text style={styles.modalText}>Time until Start: {countdown}</Text>
+                    )}
+                    {user?.uid == event.createdBy && ((event.startDate._seconds*1000) > Date.now() && !overriden) && (
                         <View style={styles.overrideStartTimeContainer}>
                             <TouchableOpacity style={styles.overrideStartTimeButton} onPress={() => handleOverrideStartTime()}>
                                 <Text style={styles.overrideStartTimeText}>OVERRIDE START TIME</Text>
@@ -271,7 +329,7 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
                     {eventSessionId && (
                         <View style={styles.startButtonContainer}>
                             <Text style={styles.startButtonText}>Start Race</Text>
-                            {(event.startDate._seconds*1000) < Date.now() ? (
+                            {(event.startDate._seconds*1000) < Date.now() || overriden ? (
                                 <TouchableOpacity style={styles.startButton} onPress={() => handleStartEvent()} />
                             ) : (
                                 <TouchableOpacity style={styles.startButtonLocked}>

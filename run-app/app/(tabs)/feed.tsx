@@ -31,6 +31,7 @@ const Feed = () => {
   );
 
   const onCardClicked = async (ev: Event) => {
+    fetchEvents("joined");
     setCurrentEvent(ev);
     const token = await getAuth().currentUser?.getIdToken();
     if (!token) throw new Error("User not authenticated");

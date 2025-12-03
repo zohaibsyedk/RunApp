@@ -6,6 +6,9 @@ import { useEvents } from '../contexts/EventContext';
 import StopRunButton from '../../components/StopRunButton';
 import * as SecureStore from 'expo-secure-store';
 import { useFocusEffect } from "@react-navigation/native";
+import { useAuth } from "../contexts/AuthContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebaseConfig";
 
 const REFRESH_INTERVAL_MS = 1000;
 const Activity: React.FC = () => {
@@ -15,31 +18,34 @@ const Activity: React.FC = () => {
   const [activeSession, setActiveSession] = useState<Session | null>(null);
   const [activeOrganization, setActiveOrganization] = useState<Organization | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const [photo, setPhoto] = useState(user?.photoURL);
 
   useEffect(() => {
-    if (activeSession !== null) {
-      console.log("activeSession state updated:", activeSession);
-    } else {
-      console.log("activeSession is null (either initial state or no session found)");
-    }
-  }, [activeSession]);
-    
-  useEffect(() => {
-    if (activeEvent !== null) {
-    console.log("activeEvent state updated:", activeEvent);
-    } else {
-      console.log("activeEvent is null (either initial state or no session found)");
-    }
-  }, [activeEvent]);
-
-  useEffect(() => {
-    if (activeOrganization !== null) {
-      console.log("activeOrganization state updated:", activeOrganization);
-    } else {
-      console.log("activeOrganization is null (either initial state or no session found)");
-    }
+    console.log("activeOrganization: ", activeOrganization);
   }, [activeOrganization]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user) {
+        const userDocRef = doc(db, "users", `${user.uid}`);
+        
+        try {
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+          } else {
+            console.log("User document not found in Firestore");
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+
+    fetchUserData()
+  }, [user])
+  
   useFocusEffect(
     useCallback(() => {
       setSessionLoading(true);
@@ -52,17 +58,20 @@ const Activity: React.FC = () => {
             setActiveSession(null);
             setActiveEvent(null);
             setActiveOrganization(null);
+            setSessionLoading(false);
             return;
           }
           console.log('sessionId: '+sessionId);
           const token = await getAuth().currentUser?.getIdToken();
           if (!token) throw new Error("User not authenticated");
+          console.log("fetching session data");
           const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
+          console.log("session data fetched");
   
           if (response.ok) {
             const data = await response.json();
@@ -90,9 +99,8 @@ const Activity: React.FC = () => {
     }, [])
   );
 
-  console.log()
 
-  if (sessionLoading) {
+    if (sessionLoading) {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Activity</Text>
@@ -100,6 +108,7 @@ const Activity: React.FC = () => {
         </View>
     );
   } 
+
 
   return (
     <View style={styles.container}>
@@ -113,7 +122,7 @@ const Activity: React.FC = () => {
           <Text style={styles.raceStat}>Time: {Math.floor(activeSession.elapsedTimeSeconds / 60)}m {activeSession.elapsedTimeSeconds % 60}s</Text>
         </View>
         <View style={styles.orgInfo}>
-        <Image style={styles.orgImage} alt='Organization Image' source={{ uri: activeOrganization.organizationPhotoURL || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}} />
+        <Image style={styles.orgImage} alt='Organization Image' source={{ uri: activeOrganization?.organizationPhotoURL || photo || "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png"}} />
         </View>
       </View>
     ) : (

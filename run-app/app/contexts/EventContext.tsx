@@ -22,7 +22,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchEvents = async (filter: string = 'all') => {
+  const fetchEvents = async (filter: string = "joined") => {
     setLoading(true);
     setError('');
     try {
