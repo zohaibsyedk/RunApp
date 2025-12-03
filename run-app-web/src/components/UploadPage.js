@@ -85,7 +85,7 @@ const UploadPage = () => {
         const submissionData = new FormData();
         submissionData.append('senderName', formData.senderName);
         submissionData.append('triggerType', formData.triggerType);
-        submissionData.append('triggerValue', formData.triggerValue);
+        submissionData.append('triggerValue', (formData.triggerValue*1609.34));
         submissionData.append('audioFile', formData.audioFile, 'cheer-recording.webm');
 
         try {

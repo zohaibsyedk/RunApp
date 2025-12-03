@@ -138,7 +138,7 @@ const Index: React.FC<Props> = ({ title, onPress }) => {
         >
           <View style={[StyleSheet.absoluteFill, styles.overlay]} />
           <View style={styles.container}>
-            <Text style={styles.title}>Welcome to RunApp</Text>
+            <Text style={styles.title}>Welcome to Finishline!</Text>
             <Text style={styles.subtitle}>Login or Sign Up to continue</Text>
             <TouchableOpacity style={[styles.button, showSignIn && styles.buttonActive]} onPress={() => {setShowSignIn(true); setShowSignUp(false);}} activeOpacity={0.7}>
               <Text style={styles.btext}>Login</Text>

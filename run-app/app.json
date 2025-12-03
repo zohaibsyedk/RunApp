@@ -1,12 +1,12 @@
 {
   "expo": {
     "scheme": "runapp",
-    "name": "run-app",
+    "name": "Finishline",
     "slug": "run-app",
     "version": "1.0.0",
     "backgroundColor": "#333335",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/finishline_icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

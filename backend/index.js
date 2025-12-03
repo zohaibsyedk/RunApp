@@ -155,6 +155,7 @@ app.get('/api/events', verifyFirebaseToken, async (req, res) => {
     const userId = req.user.uid;
     const { filter } = req.query;
     const eventsCollection = firestore.collection('events');
+    const eventSessionsCollection = firestore.collection('eventSessions');
 
     let rawEvents = [];
 
@@ -165,6 +166,24 @@ app.get('/api/events', verifyFirebaseToken, async (req, res) => {
         const snapshot = await query.get();
         rawEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         break;
+      }
+      case 'joined': {
+        console.log(`Fetching events for user ${userId}`);
+        const sessionsQuery = eventSessionsCollection.where('userId', '==', userId).where('status', '!=', 'completed');
+        const sessionsSnapshot = await sessionsQuery.get();
+
+        const joinedEventIds = sessionsSnapshot.docs
+          .map(doc => doc.data().eventId)
+          .filter((value, index, self) => self.indexOf(value) === index);
+        
+          if (joinedEventIds.length === 0) {
+            rawEvents = [];
+          } else {
+            const eventsQuery = eventsCollection.where(admin.firestore.FieldPath.documentId(), 'in', joinedEventIds);
+            const eventsSnapshot = await eventsQuery.get();
+            rawEvents = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          }
+          break;
       }
       case 'public': {
         console.log('Fetching all public events');
@@ -625,9 +644,9 @@ app.post('/api/sessions/:sessionId/stop', verifyFirebaseToken, async (req, res) 
   }
 });
 
-app.get('/api/sessions/:sessionId', async (req, res) => {
+app.get('/api/sessions/:sessionId', verifyFirebaseToken, async (req, res) => {
   try {
-    console.log("getting user and event data for share website");
+    const userId = req.user.uid;
     const { sessionId } = req.params;
 
     const sessionDocRef = firestore.collection('eventSessions').doc(sessionId);
@@ -662,10 +681,39 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
     const userData = userDoc.data();
     const eventData = eventDoc.data();
 
+    if (!eventData.organizationId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Event data is incomplete. Missing organization reference." 
+      });
+    }
+
+    let photoURL = "";
+
+    if (organizationId != userId) {
+      const organizationDocRef = firestore.collection('organizations').doc(eventData.organizationId);
+      const organizationDoc = await organizationDocRef.get();
+      if (!organizationDoc.exists) {
+        return res.status(404).json({ success: false, error: "No organization found in the Event" });
+      }
+  
+      const organizationData = organizationDoc.data();
+
+      photoURL = organizationData.organizationPhotoURL;
+    } else {
+      photoURL = userData.photoURL;
+    }
+
+    
+
+    
+
     return res.status(200).json({
       success: true,
       message: "Event and User Data for the Session successfully retrieved.",
       event: eventData,
+      session: sessionData,
+      photoURL: photoURL,
       user: userData
     });
   } catch (error) {

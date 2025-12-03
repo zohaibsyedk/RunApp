@@ -32,8 +32,18 @@ export interface Organization {
     name: string;
     memberCount: number;
     createdAt: Timestamp;
+    createdBy: string;
     description: string;
     organizationPhotoURL: string;
     updatedAt: Timestamp;
     visibility: 'Public' | 'Private' | 'Friends';
+}
+
+export interface Session {
+    id: string;
+    elapsedDistanceMeters: number;
+    elapsedTimeSeconds: number;
+    eventId: string;
+    startTime: Timestamp;
+    event: Event;
 }

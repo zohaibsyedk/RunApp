@@ -9,6 +9,7 @@ import TaskManager from 'expo-task-manager';
 import { LOCATION_TASK_NAME } from '@/tasks/locationTask';
 import * as SecureStore from 'expo-secure-store';
 import * as Clipboard from 'expo-clipboard';
+import { router } from 'expo-router';
 
 interface EventModalProps {
     visible: boolean;
@@ -176,6 +177,7 @@ const EventModalFull: React.FC<EventModalProps> = ({ visible, onClose, event, ev
             });
 
             console.log(`Session started: ${eventSessionId}`);
+            router.push('/(tabs)/activity');
             onClose();
         } catch (error) {
             console.error('Error starting session:', error);

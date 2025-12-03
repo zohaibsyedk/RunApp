@@ -41,12 +41,10 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 10,
         top: 10,
-        fontFamily: 'Lexend-Regular',
         fontSize: 18,
         color: '#F2F0EF',
     },
     descriptionText: {
-        fontFamily: 'Lexend-Regular',
         fontSize: 14,
         color: '#DDDDDD',
     },
