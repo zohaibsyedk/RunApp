@@ -85,7 +85,11 @@ const UploadPage = () => {
         const submissionData = new FormData();
         submissionData.append('senderName', formData.senderName);
         submissionData.append('triggerType', formData.triggerType);
-        submissionData.append('triggerValue', (formData.triggerValue*1609.34));
+        if (formData.triggerType === 'distance') {
+            submissionData.append('triggerValue', (formData.triggerValue*1609.34));
+        } else {
+            submissionData.append('triggerValue', (formData.triggerValue));
+        }
         submissionData.append('audioFile', formData.audioFile, 'cheer-recording.webm');
 
         try {

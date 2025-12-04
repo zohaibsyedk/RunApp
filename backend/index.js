@@ -62,7 +62,7 @@ app.post('/api/users', verifyFirebaseToken, async (req, res) => {
       displayName: displayName || '',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       photoURL: photoURL,
-      accountType: 'Runner',
+      messagesReceived: 0,
       organizations: [displayName],
     };
 
