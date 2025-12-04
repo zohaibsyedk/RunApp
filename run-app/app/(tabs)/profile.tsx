@@ -129,7 +129,15 @@ const ProfileScreen = () => {
             )}
           </TouchableOpacity>
           <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
-          <Text style={styles.userEmail}>{accountType}</Text>
+          <Text style={styles.userEmail}>Member Since: {
+          new Date(user?.metadata.creationTime || new Date()).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        })
+    }
+    </Text>
         </View>
         
         <View style={styles.settings}>

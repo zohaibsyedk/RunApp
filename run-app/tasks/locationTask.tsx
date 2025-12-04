@@ -3,6 +3,8 @@ import * as Location from 'expo-location';
 import { getAuth } from 'firebase/auth';
 import * as SecureStore from 'expo-secure-store';
 import { createAudioPlayer } from 'expo-audio';
+import { doc, updateDoc, increment } from 'firebase/firestore'; 
+import { db } from '../firebaseConfig';
 
 export const LOCATION_TASK_NAME = 'background-location-task';
 const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
@@ -60,6 +62,24 @@ const playNextMessageInQueue = async () => {
     }
 };
 
+const incrementUserMessageCount = async (uid: string, count: number) => {
+    try {
+        const auth = getAuth();
+        const app = auth.app;
+        
+        const userRef = doc(db, 'users', uid);
+        
+        await updateDoc(userRef, {
+            messagesReceived: increment(count),
+            updatedAt: new Date()
+        });
+        console.log(`Successfully incremented messagesReceived by ${count} for user ${uid}`);
+
+    } catch (error) {
+        console.error("Error incrementing user message count:", error);
+    }
+}
+
 TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     if (error) {
         console.error('Background task error:', error);
@@ -72,8 +92,9 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
             const sessionId = await SecureStore.getItemAsync('activeSessionId');
             const startTimeString = await SecureStore.getItemAsync('activeSessionStartTime');
             const token = await getAuth().currentUser?.getIdToken();
+            const user = await getAuth().currentUser;
 
-            if (!sessionId || !startTimeString || !token) {
+            if (!sessionId || !startTimeString || !token || !user) {
                 console.error(`Background task missing session data or token. Stopping.`);
                 Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
                 return;
@@ -111,7 +132,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
 
             if (result.messagesToPlay && result.messagesToPlay.length > 0) {
                 console.log(`Received ${result.messagesToPlay.length} new messages.`);
-
+                await incrementUserMessageCount(user.uid, result.messagesToPlay.length);
                 audioQueue.push(...result.messagesToPlay);
                 playNextMessageInQueue();
             } else {
