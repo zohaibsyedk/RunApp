@@ -9,26 +9,91 @@ import { useEvents } from '../contexts/EventContext';
 import EventModalFull from "../../components/EventModalFull";
 import EventCard from "../../components/EventCard";
 import { getAuth } from 'firebase/auth';
+import StatusBar from "../../components/StatusBar";
+import { db } from "@/firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import '../../assets/images/bronze1.png';
+import '../../assets/images/bronze2.png';
+import '../../assets/images/bronze3.png';
+import '../../assets/images/silver1.png';
+import '../../assets/images/silver2.png';
+import '../../assets/images/silver3.png';
+import '../../assets/images/gold1.png';
+import '../../assets/images/gold2.png';
+import '../../assets/images/gold3.png';
+import '../../assets/images/platinum1.png';
+import '../../assets/images/platinum2.png';
+import '../../assets/images/platinum3.png';
+import '../../assets/images/diamond.png';
+import '../../assets/images/unranked.png';
+
 
 const Feed = () => {
-  const { logout } = useAuth();
   const API_URL = "https://run-app-backend-179019793982.us-central1.run.app";
 
   const { fetchEvents, events, loading, error } = useEvents();
   const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
   const [eventSessionId, setEventSessionId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [messagesReceived, setMessagesReceived] = useState(0);
+  const [statusBarPercentage, setStatusBarPercentage] = useState(0);
+  const [rank, setRank] = useState(0);
+
+  const ranks = [
+    require('../../assets/images/unranked.png'),
+    require('../../assets/images/bronze1.png'), 
+    require('../../assets/images/bronze2.png'),
+    require('../../assets/images/bronze3.png'),
+    require('../../assets/images/silver1.png'),
+    require('../../assets/images/silver2.png'),
+    require('../../assets/images/silver3.png'),
+    require('../../assets/images/gold1.png'),
+    require('../../assets/images/gold2.png'),
+    require('../../assets/images/gold3.png'),
+    require('../../assets/images/platinum1.png'),
+    require('../../assets/images/platinum2.png'),
+    require('../../assets/images/platinum3.png'),
+    require('../../assets/images/diamond.png'),
+  ];
+
+  const { user, logout } = useAuth();
+
+  const fetchUserData = async () => {
+    if (user) {
+      const userDocRef = doc(db, "users", `${user.uid}`);
+      
+      try {
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setMessagesReceived(data.messagesReceived || 0);
+        } else {
+          console.log("User document not found in Firestore");
+          setMessagesReceived(0);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setMessagesReceived(0);
+      }
+    }
+  };
+
 
   useFocusEffect(
     useCallback(() => {
       console.log("Feed screen focused. Fetching joined events...");
       fetchEvents("joined");
+      fetchUserData();
 
       return () => {
         console.log("Feed screen unfocused");
       };
     }, [])
   );
+
+  useEffect(() => {
+    calculatePercentage(messagesReceived);
+  }, [messagesReceived]);
 
   const onCardClicked = async (ev: Event) => {
     fetchEvents("joined");
@@ -53,10 +118,28 @@ const Feed = () => {
       throw new Error('Failed to fetch session');
     }
     setIsModalVisible(true);
-    console.log('Event ID:',ev.id)
+    console.log('Event ID:',ev.id);
   }
   const onCardClosed = () => {
     setIsModalVisible(false);
+  }
+
+  const calculatePercentage = (messagesReceived: number) => {
+                        //bronze 3 tier,  silver 3 tier,    gold 3 tier,   platinum 3 tier,  diamond
+    const milestones = [0, 10, 50, 100, 250, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 10000];
+    
+    // Handle unranked case (0 messages)
+    
+    for (let i = 1; i < milestones.length; i++) {
+      if (messagesReceived < milestones[i]) {
+        setStatusBarPercentage((messagesReceived / milestones[i]) * 100);
+        setRank(i-1);
+        return;
+      }
+    }
+    // Handle case where user has reached max milestone
+    setStatusBarPercentage(100);
+    setRank(milestones.length - 1);
   }
     
   return (
@@ -73,6 +156,11 @@ const Feed = () => {
           setEventSessionId(newSession.id);
         }}
       />
+      {rank < ranks.length-1 ? (
+        <StatusBar percentage={statusBarPercentage} rankUrl={ranks[rank]} nextRankUrl={ranks[rank+1]} messagesReceived={messagesReceived} rankIdx={rank} nextRankIdx={rank+1} />
+      ) : (
+        <StatusBar percentage={statusBarPercentage} rankUrl={ranks[rank]} nextRankUrl={ranks[rank]} messagesReceived={messagesReceived} rankIdx={rank} nextRankIdx={rank} />
+      )}
       
       <View style={styles.content}>
         <View style={styles.listContainer}>
@@ -101,7 +189,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#333335",
     paddingTop: 40,
-    paddingBottom: 0
+    paddingBottom: 10,
   },
   title: {
     fontSize: 28,
@@ -114,14 +202,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 18,
     textAlign: "center",
-    marginBottom: 30,
+    marginBottom: 10,
     color: "#DDDDDD",
   },
   heading: {
     fontSize: 20,
     textAlign: "center",
-    marginBottom: 15,
     color: "#DDDDDD",
+    marginTop: -30,
   },
   content: {
     flex: 1,
@@ -131,21 +219,14 @@ const styles = StyleSheet.create({
   listContainer: { 
     flex: 1,
     width: '100%',
-    position: 'relative', 
-    marginBottom: 15,
+    position: 'relative',
   },
   cardContainer: {
     flex: 1,
     flexDirection: 'column',
-    padding: 5,
-  },
-  gradientOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80, // Height of the fade effect
-    zIndex: 1, // Ensure the gradient is on top of the cards
+    paddingHorizontal: 5,
+    marginTop: 10,
+    marginBottom: -10,
   },
   description: {
     fontSize: 16,

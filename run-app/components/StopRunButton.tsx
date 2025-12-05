@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Alert, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import * as Location from 'expo-location';
 import { LOCATION_TASK_NAME } from '@/tasks/locationTask';
@@ -64,26 +65,45 @@ const StopRunButton = () => {
     if (!activeSessionId) return null;
 
     return (
-        <TouchableOpacity style={styles.stopButton} onPress={handleStopRun}>
-            <Text style={styles.stopButtonText}>STOP RUN</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+                style={styles.stopButton} 
+                onPress={handleStopRun}
+                activeOpacity={0.8}
+            >
+                <Ionicons name="stop-circle" size={24} color="#F2F0EF" style={{ marginRight: 8 }} />
+                <Text style={styles.stopButtonText}>STOP RUN</Text>
+            </TouchableOpacity>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    stopButton: {
+    buttonContainer: {
         position: 'absolute',
-        bottom: 50,
-        alignSelf: 'center',
-        backgroundColor: 'red',
-        paddingVertical: 15,
-        paddingHorizontal: 30,
-        borderRadius: 30
+        bottom: 20,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        paddingHorizontal: 20,
+    },
+    stopButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(220, 53, 69, 0.9)',
+        paddingVertical: 16,
+        paddingHorizontal: 40,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        minWidth: 200,
     },
     stopButtonText: {
-        color: 'white',
+        color: '#F2F0EF',
         fontWeight: 'bold',
         fontSize: 18,
+        letterSpacing: 1,
     }
 });
 
